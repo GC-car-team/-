@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 标定与运行产物（本地生成，勿提交）
+vision_place/calib.json
+vision_place/calib.json.tmp
+**/l0_stdout.txt
+**/l0_stderr.txt
+*.log
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 可选：若模型改走网盘，取消下一行注释
+# *.cvimodel
