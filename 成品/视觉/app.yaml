@@ -1,0 +1,11 @@
+id: zdx2007
+name: CP
+version: 1.0.0
+author: '4'
+icon: ''
+desc: GC
+files:
+  - app.yaml
+  - main.py
+  - yolo26n.cvimodel
+  - yolo26n.mud

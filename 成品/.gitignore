@@ -1,0 +1,36 @@
+# Keil / 构建产物
+**/Objects/
+**/Listings/
+**/RTE/
+*.o
+*.d
+*.crf
+*.dep
+*.lst
+*.map
+*.axf
+*.hex
+*.bin
+*.lnp
+*.build_log.htm
+*.uvguix.*
+keil-assistant.log
+bs.log
+
+# 资料里的嵌入式构建缓存
+**/build/
+**/.ninja_deps
+**/.ninja_log
+**/CMakeCache.txt
+*.elf
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 系统
+Thumbs.db
+desktop.ini
+.DS_Store

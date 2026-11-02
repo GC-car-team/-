@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>相机+总线舵机 桌面联调</title>
+  <style>
+    :root { --bg:#1a1d23; --card:#242933; --fg:#e8eaed; --mut:#9aa0a6; --acc:#3d8bfd; --ok:#3dd68c; --bad:#f07178; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "Segoe UI", "PingFang SC", sans-serif; background:var(--bg); color:var(--fg); }
+    main { max-width: 920px; margin: 0 auto; padding: 1.25rem; }
+    h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+    section { background: var(--card); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    section h2 { font-size: 0.95rem; margin: 0 0 0.75rem; color: var(--mut); font-weight: 600; }
+    label { display:block; font-size: 0.8rem; color: var(--mut); margin-bottom: 0.25rem; }
+    select, input { width: 100%; padding: 0.45rem 0.5rem; border-radius: 6px; border: 1px solid #3c424d; background:#1a1d23; color:var(--fg); }
+    .row { display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.75rem; align-items: end; }
+    .btns { display:flex; flex-wrap:wrap; gap: 0.5rem; }
+    button { padding: 0.5rem 0.9rem; border:0; border-radius: 6px; background: var(--acc); color:#fff; font-weight:600; cursor:pointer; }
+    button.secondary { background:#3c424d; }
+    button.danger { background: var(--bad); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .stat { font-family: ui-monospace, Consolas, monospace; font-size: 0.85rem; line-height: 1.5; }
+    .ok { color: var(--ok); } .bad { color: var(--bad); }
+    #log { height: 180px; overflow:auto; font-family: ui-monospace, Consolas, monospace; font-size: 0.75rem; background:#12151a; padding: 0.5rem; border-radius: 6px; }
+    .cross { width: 160px; height: 120px; background:#12151a; border-radius: 6px; position: relative; margin-top: 0.5rem; }
+    .cross .dot { position:absolute; width:8px; height:8px; margin:-4px; border-radius:50%; background:var(--ok); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>相机 + 总线舵机 桌面联调（P0–P2）</h1>
+
+  <section>
+    <h2>连接（双口隔离）</h2>
+    <div class="row">
+      <div><label>舵机 COM</label><select id="servoPort"></select></div>
+      <div><label>视觉 COM（可空）</label><select id="visionPort"><option value="">—</option></select></div>
+      <div><label>波特率</label><input id="baud" value="115200" /></div>
+      <div class="btns">
+        <button id="btnConnect">连接</button>
+        <button class="secondary" id="btnDisc">断开</button>
+        <button class="secondary" id="btnRefresh">刷新口</button>
+      </div>
+    </div>
+    <p class="stat" id="portHint" style="margin:0.5rem 0 0">端口：检测中…</p>
+    <div class="row" style="grid-template-columns:1fr 1fr; margin-top:0.5rem">
+      <div><label>手动舵机口（扫不到时填，如 COM12）</label><input id="servoManual" placeholder="COM12" /></div>
+      <div><label>手动视觉串口（可空；USB 接相机通常无 COM）</label><input id="visionManual" placeholder="COM3" /></div>
+    </div>
+    <div class="row" style="grid-template-columns:1fr 1fr auto; margin-top:0.75rem">
+      <div><label>相机 WiFi IP（推荐）</label><input id="visionHost" placeholder="192.168.x.x" /></div>
+      <div><label>TCP 端口</label><input id="visionTcpPort" type="number" value="5555" /></div>
+      <button class="secondary" id="btnProbe" type="button">只测相机</button>
+    </div>
+    <p style="font-size:0.75rem;color:var(--mut);margin:0.4rem 0 0">
+      USB 直连 MaixCam 一般<strong>不会</strong>出现串口号。请相机先连同一 WiFi，运行
+      <code>桌面联调/maixcam_wifi_bench.py</code>，把屏上 IP 填到上面再点连接。
+    </p>
+  </section>
+
+  <section>
+    <h2>舵机 P0</h2>
+    <div class="btns">
+      <button id="btnOpen">张开</button>
+      <button id="btnClose">合紧</button>
+      <button class="danger" id="btnStop">急停</button>
+      <button class="secondary" id="btnReset">复位</button>
+    </div>
+    <p class="stat" id="servoStat">state: —</p>
+    <div class="row" style="grid-template-columns:1fr 1fr auto; margin-top:0.75rem">
+      <div><label>自定义 P</label><input id="pos" type="number" value="1500" min="500" max="2500" /></div>
+      <div><label>T ms</label><input id="tms" type="number" value="1000" min="100" max="9999" /></div>
+      <button class="secondary" id="btnGoto">Goto</button>
+    </div>
+    <div class="row" style="grid-template-columns:1fr 1fr auto; margin-top:0.75rem">
+      <div><label>标定张开 P</label><input id="openP" type="number" value="2000" min="500" max="2500" /></div>
+      <div><label>标定合紧 P</label><input id="closeP" type="number" value="600" min="500" max="2500" /></div>
+      <button class="secondary" id="btnCalib">写入本次进程</button>
+    </div>
+    <p style="font-size:0.75rem;color:var(--mut);margin:0.4rem 0 0">无主板时只标定舵机；正式值以后抄到主板 <code>BUS_SERVO_OPEN_P/CLOSE_P</code>。</p>
+  </section>
+
+  <section>
+    <h2>视觉 P1（可只接舵机；相机串口可选）</h2>
+    <p class="stat" id="visStat">vision: —</p>
+    <div class="cross" id="cross"><div class="dot" id="dot" style="display:none"></div></div>
+    <p style="font-size:0.8rem;color:var(--mut);margin:0.5rem 0">向相机发模式（FF cmd FE），与主板契约一致：</p>
+    <div class="btns">
+      <button class="secondary" data-vcmd="1">01 物料全色</button>
+      <button class="secondary" data-vcmd="2">02 圆环</button>
+      <button class="secondary" data-vcmd="3">03 红</button>
+      <button class="secondary" data-vcmd="7">07 黄</button>
+      <button class="secondary" data-vcmd="5">05 蓝</button>
+      <button class="secondary" data-vcmd="4">04 绿</button>
+      <button class="secondary" data-vcmd="6">06 黑</button>
+      <button class="secondary" data-vcmd="8">08 浅蓝</button>
+    </div>
+    <div class="btns" style="margin-top:0.75rem">
+      <button id="btnConfirm">确认合爪（P2）</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>日志（最近 50）</h2>
+    <div id="log"></div>
+  </section>
+</main>
+<script>
+async function j(url, opt) {
+  const r = await fetch(url, opt);
+  const text = await r.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (_) {}
+  if (!r.ok) {
+    const detail = (data && data.detail) ? data.detail : text;
+    throw new Error(url + ' → HTTP ' + r.status + ' ' + detail);
+  }
+  return data;
+}
+async function refreshPorts() {
+  const hint = document.getElementById('portHint');
+  try {
+    const ports = await j('/api/ports');
+    const fill = (sel, withEmpty) => {
+      const el = document.getElementById(sel);
+      const cur = el.value;
+      el.innerHTML = withEmpty ? '<option value="">—</option>' : '';
+      if (!withEmpty && ports.length === 0) {
+        const o = document.createElement('option');
+        o.value = ''; o.textContent = '（无端口，请用下方手动填写）';
+        el.appendChild(o);
+      }
+      ports.forEach(p => {
+        const o = document.createElement('option');
+        o.value = p.device; o.textContent = p.device + ' — ' + p.desc;
+        el.appendChild(o);
+      });
+      if ([...el.options].some(o => o.value === cur)) el.value = cur;
+    };
+    fill('servoPort', false);
+    fill('visionPort', true);
+    if (ports.length === 0) {
+      hint.innerHTML = '<span class="bad">扫到 0 个串口</span>：检查 USB、CH340 驱动；或下方手动填 COM号。须用 start.bat 打开的 http://127.0.0.1:8765，不要双击打开 html。';
+    } else {
+      hint.innerHTML = '<span class="ok">扫到 ' + ports.length + ' 个</span>：' +
+        ports.map(p => p.device).join(', ') +
+        '（设备管理器里「端口(COM和LPT)」可对照）';
+    }
+  } catch (e) {
+    hint.innerHTML = '<span class="bad">无法读 /api/ports</span>：' + e.message +
+      ' —— 请先运行 start.bat，打开 http://127.0.0.1:8766/ （端口 8766）';
+  }
+}
+function pickPort(selectId, manualId) {
+  const m = (document.getElementById(manualId).value || '').trim();
+  if (m) return m.toUpperCase().replace(/\s/g, '');
+  return document.getElementById(selectId).value;
+}
+document.getElementById('btnRefresh').onclick = refreshPorts;
+document.getElementById('btnProbe').onclick = async () => {
+  const host = (document.getElementById('visionHost').value || '').trim();
+  if (!host) { alert('先填相机 WiFi IP'); return; }
+  try {
+    const r = await j('/api/probe_vision', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ vision_host: host, vision_tcp_port: +document.getElementById('visionTcpPort').value || 5555 })});
+    alert('相机 TCP 通：' + r.host + ':' + r.port);
+  } catch (e) {
+    alert(String(e.message || e));
+  }
+};
+document.getElementById('btnConnect').onclick = async () => {
+  const servo = pickPort('servoPort', 'servoManual');
+  const vision = pickPort('visionPort', 'visionManual');
+  const host = (document.getElementById('visionHost').value || '').trim();
+  if (!servo && !host && !vision) {
+    alert('至少填：舵机 COM，或相机 WiFi IP');
+    return;
+  }
+  try {
+    const r = await j('/api/connect', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        servo_port: servo,
+        vision_port: host ? '' : vision,
+        vision_host: host,
+        vision_tcp_port: +document.getElementById('visionTcpPort').value || 5555,
+        baud: +document.getElementById('baud').value
+      })});
+    if (host && !r.ok_vision) {
+      alert('舵机可能已连，但相机失败：\n' + (r.vision_error || 'unknown'));
+    }
+  } catch (e) {
+    alert('连接失败：' + (e.message || e));
+  }
+};
+document.getElementById('btnDisc').onclick = () => j('/api/disconnect', {method:'POST'});
+document.getElementById('btnOpen').onclick = () => j('/api/open', {method:'POST'});
+document.getElementById('btnClose').onclick = () => j('/api/close', {method:'POST'});
+document.getElementById('btnStop').onclick = () => j('/api/stop', {method:'POST'});
+document.getElementById('btnReset').onclick = () => j('/api/reset', {method:'POST'});
+document.getElementById('btnConfirm').onclick = () => j('/api/confirm_close', {method:'POST'});
+document.getElementById('btnGoto').onclick = () => j('/api/goto', {method:'POST', headers:{'Content-Type':'application/json'},
+  body: JSON.stringify({ pos:+document.getElementById('pos').value, ms:+document.getElementById('tms').value })});
+document.getElementById('btnCalib').onclick = () => j('/api/calib', {method:'POST', headers:{'Content-Type':'application/json'},
+  body: JSON.stringify({
+    open_p: +document.getElementById('openP').value,
+    close_p: +document.getElementById('closeP').value,
+    move_ms: +document.getElementById('tms').value
+  })});
+document.querySelectorAll('[data-vcmd]').forEach(btn => {
+  btn.onclick = () => j('/api/vision_cmd', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ cmd: +btn.getAttribute('data-vcmd') })});
+});
+
+async function poll() {
+  try {
+    const s = await j('/api/status');
+    const ok = s.fault ? 'bad' : 'ok';
+    document.getElementById('servoStat').innerHTML =
+      `state: <span class="${ok}">${s.servo_state}</span> pos=${s.servo_pos ?? '—'} ` +
+      `servo=${s.servo_connected?'ON':'OFF'} vision=${s.vision_connected?'ON':'OFF'}(${s.vision_mode||'-'}) ` +
+      (s.fault ? `<span class="bad">${s.fault}</span>` : '');
+    const v = s.vision;
+    document.getElementById('visStat').textContent = v
+      ? (v.kind==='mat' ? `mat (${v.x},${v.y}) color=${v.color}` : `ring (${v.x},${v.y}) digit=${v.digit}`)
+      : 'vision: —';
+    const dot = document.getElementById('dot');
+    if (v) {
+      dot.style.display = 'block';
+      dot.style.left = (Math.min(160, Math.max(0, v.x * 160 / 320))) + 'px';
+      dot.style.top = (Math.min(120, Math.max(0, v.y * 120 / 240))) + 'px';
+    } else dot.style.display = 'none';
+    if (s.open_p != null) document.getElementById('openP').value = s.open_p;
+    if (s.close_p != null) document.getElementById('closeP').value = s.close_p;
+    document.getElementById('log').innerHTML = (s.log||[]).map(e => e.t+' '+e.m).join('<br>');
+  } catch (e) {}
+  setTimeout(poll, 400);
+}
+refreshPorts();
+poll();
+</script>
+</body>
+</html>

@@ -155,7 +155,20 @@ def name_of(info, business_id):
 # ============================================================
 def _selftest(base_dir=None):
     here = os.path.dirname(os.path.abspath(__file__))
-    base = base_dir or os.path.dirname(here)  # 上一级 = 工作区根
+    # 优先 vision_place/models/，兼容仓库根目录旧位置
+    candidates = []
+    if base_dir:
+        candidates.append(base_dir)
+    candidates.append(os.path.join(here, "models"))
+    candidates.append(os.path.dirname(here))
+    base = None
+    for c in candidates:
+        if os.path.exists(os.path.join(c, "model_320583.mud")) or os.path.exists(
+            os.path.join(c, "model_321272.mud")
+        ):
+            base = c
+            break
+    base = base or candidates[0]
 
     fails = 0
 
@@ -205,7 +218,6 @@ def _selftest(base_dir=None):
         check(id_of(ri, 2) == 1, "class_id=2 -> 环1")
     else:
         print("  skip 圆环模型（%s 不存在）" % p_ring)
-
     # ---- 异常用例 ----
     print("\n[异常用例]")
     check(_try(lambda: labels_to_ids(["a红"])) is None, "无数字标签 -> 抛错")

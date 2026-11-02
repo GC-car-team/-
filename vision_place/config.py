@@ -62,11 +62,11 @@ CAM_TO_GRIPPER_MM_Y = 0.0
 # 5. 模型
 # ============================================================
 USE_MODEL = True
-MODEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# 模型统一放在 vision_place/models/（勿再依赖仓库根目录）
+MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
 
 MODEL_COLOR_MUD = "model_320583.mud"   # 6类颜色：ids=[1,4,2,5,6,3]
-MODEL_RING_MUD = "model_321272.mud"    # 3类圆环：ids=[3,2,1] 与 class_id 相反
-
+MODEL_RING_MUD = "model_321272.mud"    # 3类圆环数字：ids=[3,2,1] 与 class_id 相反
 # 这两个必须现场调，不许写死。为 None 时 detectors 会抛错。
 MODEL_CONF_TH = None    # TBD 建议从 0.5 起试
 MODEL_IOU_TH = None     # TBD 建议从 0.45 起试

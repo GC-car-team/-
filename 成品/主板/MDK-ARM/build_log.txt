@@ -1,0 +1,245 @@
+*** Using Compiler 'V5.06 update 5 (build 528)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
+Rebuild target 'GC_Car'
+assembling startup_stm32f429xx.s...
+compiling route_plan.c...
+compiling vofa.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Src/vofa.c: 1 warning, 0 errors
+compiling vision.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/vision.h(53): warning:  #9-D: nested comment is not allowed
+  /* 最近一帧。还没收到过合法帧时返回 0�?*dx/*dy 不动 */
+../Core/Src/vision.c: 2 warnings, 0 errors
+compiling route_run.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/route_run.h(18): warning:  #1-D: last line of file ends without a newline
+  #endif /* ROUTE_RUN_H */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/vision.h(53): warning:  #9-D: nested comment is not allowed
+  /* 最近一帧。还没收到过合法帧时返回 0�?*dx/*dy 不动 */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Src/route_run.c(645): warning:  #1-D: last line of file ends without a newline
+  #endif
+../Core/Src/route_run.c(32): warning:  #550-D: variable "s_gimbal_aim"  was set but never used
+  static uint8_t  s_gimbal_aim    = 0u;   /* 1 = 允许视觉带动云台 */
+../Core/Src/route_run.c(313): warning:  #177-D: function "route_station"  was declared but never referenced
+  static uint8_t route_station(uint8_t act, uint32_t now)
+../Core/Src/route_run.c: 13 warnings, 0 errors
+compiling gm6020.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Src/gm6020.c(203): warning:  #177-D: variable "idx"  was declared but never referenced
+          uint8_t idx = (uint8_t)(rx.StdId - GM6020_FEEDBACK_ID_BASE);   /* 0 = 电机ID1 */
+../Core/Src/gm6020.c: 3 warnings, 0 errors
+compiling pd42s1.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/vision.h(53): warning:  #9-D: nested comment is not allowed
+  /* 最近一帧。还没收到过合法帧时返回 0�?*dx/*dy 不动 */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Src/pd42s1.c: 8 warnings, 0 errors
+compiling motor.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/motor.h(21): warning:  #1-D: last line of file ends without a newline
+  #endif /* MOTOR_H */
+../Core/Src/motor.c(116): warning:  #1-D: last line of file ends without a newline
+  #endif
+../Core/Src/motor.c: 3 warnings, 0 errors
+compiling gpio.c...
+compiling chassis.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Src/chassis.c: 3 warnings, 0 errors
+compiling bt.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Src/bt.c: 2 warnings, 0 errors
+compiling tune.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/motor.h(21): warning:  #1-D: last line of file ends without a newline
+  #endif /* MOTOR_H */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Src/tune.c(607): warning:  #223-D: function "RouteRun_Info" declared implicitly
+              RouteRun_Info(&n, &idx, &ph, &L);
+../Core/Src/tune.c(627): warning:  #223-D: function "HMI_GetObs" declared implicitly
+              HMI_GetObs(&up, &on, &oe);
+../Core/Src/tune.c(786): warning:  #223-D: function "Vision_GetOffset" declared implicitly
+              uint8_t has = Vision_GetOffset(&dx, &dy);
+../Core/Src/tune.c(788): warning:  #223-D: function "Vision_TakeTask" declared implicitly
+              (void)Vision_TakeTask(code, (uint8_t)sizeof(code));
+../Core/Src/tune.c(790): warning:  #223-D: function "Vision_IsOnline" declared implicitly
+                          (unsigned)Vision_IsOnline(),
+../Core/Src/tune.c(791): warning:  #223-D: function "Vision_RxByteCount" declared implicitly
+                          (unsigned long)Vision_RxByteCount(),
+../Core/Src/tune.c(792): warning:  #223-D: function "Vision_FrameCount" declared implicitly
+                          (unsigned long)Vision_FrameCount(),
+../Core/Src/tune.c(793): warning:  #223-D: function "Vision_IsArrived" declared implicitly
+                          (unsigned)Vision_IsArrived(),
+../Core/Src/tune.c(794): warning:  #223-D: function "Vision_IsTimeout" declared implicitly
+                          (unsigned)Vision_IsTimeout(),
+../Core/Src/tune.c(60): warning:  #550-D: variable "s_motor_run"  was set but never used
+  static uint8_t  s_motor_run;      /* ★直流电机：1 = 正在定时运行 */
+../Core/Src/tune.c(61): warning:  #550-D: variable "s_motor_dir"  was set but never used
+  static uint8_t  s_motor_dir;
+../Core/Src/tune.c(62): warning:  #550-D: variable "s_motor_ms"  was set but never used
+  static uint32_t s_motor_ms;
+../Core/Src/tune.c(63): warning:  #550-D: variable "s_motor_tick"  was set but never used
+  static uint32_t s_motor_tick;
+../Core/Src/tune.c(75): warning:  #550-D: variable "s_settle_kind"  was set but never used
+  static uint8_t  s_settle_kind;          /* 'T' / 'G' / 'S' */
+../Core/Src/tune.c: 23 warnings, 0 errors
+compiling servo.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Src/servo.c: 1 warning, 0 errors
+compiling hmi.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Src/hmi.c(516): warning:  #223-D: function "snprintf" declared implicitly
+      n = snprintf(buf, sizeof(buf), "%s.txt=\"%s\"", obj, s);
+../Core/Src/hmi.c(532): warning:  #1-D: last line of file ends without a newline
+  }
+../Core/Src/hmi.c: 3 warnings, 0 errors
+compiling arm.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Src/arm.c(430): warning:  #177-D: variable "n"  was declared but never referenced
+      uint8_t i, n;
+../Core/Src/arm.c(740): warning:  #177-D: variable "s_style"  was declared but never referenced
+              static uint8_t s_style = 0u;      /* 载荷格式�? 0~3 */
+../Core/Src/arm.c(741): warning:  #177-D: variable "s_id_digit"  was declared but never referenced
+              static uint8_t s_id_digit = 0u;   /* 0x100x �? x �? 0~F */
+../Core/Src/arm.c(51): warning:  #177-D: variable "s_listen_only"  was declared but never referenced
+  static uint8_t  s_listen_only;               /* 1 = 本段只收不发（纯监听�? */
+../Core/Src/arm.c: 7 warnings, 0 errors
+compiling imu.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/vision.h(53): warning:  #9-D: nested comment is not allowed
+  /* 最近一帧。还没收到过合法帧时返回 0�?*dx/*dy 不动 */
+../Core/Src/imu.c: 5 warnings, 0 errors
+compiling main.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/vision.h(53): warning:  #9-D: nested comment is not allowed
+  /* 最近一帧。还没收到过合法帧时返回 0�?*dx/*dy 不动 */
+../Core/Inc/route_run.h(18): warning:  #1-D: last line of file ends without a newline
+  #endif /* ROUTE_RUN_H */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Inc/motor.h(21): warning:  #1-D: last line of file ends without a newline
+  #endif /* MOTOR_H */
+../Core/Src/main.c: 15 warnings, 0 errors
+compiling can.c...
+../Core/Inc/config.h(1148): warning:  #1-D: last line of file ends without a newline
+  #define MOTOR_MS_OPEN       600u    /* 张开持续时间 ms */
+../Core/Src/can.c: 1 warning, 0 errors
+compiling i2c.c...
+compiling stm32f4xx_hal_msp.c...
+compiling stm32f4xx_it.c...
+compiling usart.c...
+compiling tim.c...
+compiling stm32f4xx_hal_can.c...
+compiling stm32f4xx_hal_rcc.c...
+compiling stm32f4xx_hal_rcc_ex.c...
+compiling stm32f4xx_hal_gpio.c...
+compiling stm32f4xx_hal_flash_ramfunc.c...
+compiling stm32f4xx_hal_pwr.c...
+compiling stm32f4xx_hal_flash_ex.c...
+compiling stm32f4xx_hal_flash.c...
+compiling stm32f4xx_hal_dma.c...
+compiling stm32f4xx_hal_pwr_ex.c...
+compiling stm32f4xx_hal_dma_ex.c...
+compiling stm32f4xx_hal_cortex.c...
+compiling stm32f4xx_hal_i2c_ex.c...
+compiling stm32f4xx_hal.c...
+compiling stm32f4xx_hal_exti.c...
+compiling stm32f4xx_hal_tim_ex.c...
+compiling stm32f4xx_hal_i2c.c...
+compiling system_stm32f4xx.c...
+compiling stm32f4xx_hal_tim.c...
+compiling stm32f4xx_hal_uart.c...
+linking...
+Program Size: Code=48988 RO-data=1692 RW-data=812 ZI-data=4572  
+FromELF: creating hex file...
+"GC_Car\GC_Car.axf" - 0 Error(s), 90 Warning(s).
+Build Time Elapsed:  00:00:42
