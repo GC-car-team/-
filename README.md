@@ -1,37 +1,39 @@
-# 搬运机器人 · 视觉端
+# 搬运机器人 · 比赛程序
 
-## 先看这一份
+本仓库即为比赛主程序与联调材料（原「成品」目录内容）。
 
-**[`docs/NOW.md`](docs/NOW.md)** —— 当前条件、能做什么、进度、目录说明。
+## 目录
 
-其它文档默认先别翻。
+| 路径 | 说明 |
+|------|------|
+| [`主板/`](主板/) | STM32 主板固件（协议、任务码、升降、GM6020、总线舵机） |
+| [`视觉/`](视觉/) | MaixCam 视觉（**已锁定**）：`main.py` + `model_321272` 环号 |
+| [`桌面联调/`](桌面联调/) | PC 网页联调：总线舵机 + 相机 WiFi（无整车也可测） |
+| [`docs/`](docs/) | 协议与改造设计文档 |
+| `imu资料/` | IMU 资料与驱动参考 |
+| `pingmu/` | 屏幕相关 |
+| `夹爪舵机测试历程/` | 早期夹爪/串口试验留档（非当前主路径） |
 
----
+## 先看文档
 
-## 代码
+| 文件 | 用途 |
+|------|------|
+| [`docs/2026-11-01-vision-mcu-car-design.md`](docs/2026-11-01-vision-mcu-car-design.md) | 视觉↔主板协议、工位模式、机构与验收 |
+| [`桌面联调/README.md`](桌面联调/README.md) | 桌面舵机 + WiFi 相机联调步骤 |
 
-| 目录 | 平台 | 作用 |
-|---|---|---|
-| [`vision_place/`](vision_place/) | MaixCAM Pro | 下视：颜色 + 环数字 + 增量误差 |
-| [`vision_qr/`](vision_qr/) | K210 | 扫码（协议对齐 `saoma.py`） |
-| [`saoma.py`](saoma.py) | K210 | 你的原始扫码，对照用 |
+## 关键约定（摘要）
 
-## 需要时再看
+- 口：UART7，115200；视觉→板 `B3 B3` 帧；板→视觉 `FF cmd FE`（`01/02/03~08`）
+- 物料帧 `B1`（原料区，跟颜色）；圆环帧 `B2`（环区，R1 跟任务环号）
+- 夹爪：总线舵机 `#000PxxxxTtttt!`（非 PWM/MG370）
 
-| 文件 | 内容 |
-|---|---|
-| [`docs/contract-mcu.md`](docs/contract-mcu.md) | 给主控的一页契约 |
-| [`docs/arch-v1.md`](docs/arch-v1.md) | 架构设计理由 |
-| [`docs/rules-extract.md`](docs/rules-extract.md) | 赛题要点 |
-| [`docs/archive/`](docs/archive/) | 旧长文（默认别翻） |
-
-## PC 自测（无打印也能跑）
+## 桌面联调（可选）
 
 ```bat
-cd vision_place
-python contract.py
-python model_meta.py
-python calib_task.py --selftest
-cd ..\vision_qr
-python qr_validate.py
+cd 桌面联调
+pip install -r requirements.txt
+python server.py
 ```
+
+浏览器打开 http://127.0.0.1:8766/ ；健康检查 http://127.0.0.1:8766/api/health  
+相机侧在 MaixVision 运行同目录 `maixcam_wifi_bench.py`（不改 `视觉/main.py`）。

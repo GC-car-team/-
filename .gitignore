@@ -1,23 +1,36 @@
+# Keil / 构建产物
+**/Objects/
+**/Listings/
+**/RTE/
+*.o
+*.d
+*.crf
+*.dep
+*.lst
+*.map
+*.axf
+*.hex
+*.bin
+*.lnp
+*.build_log.htm
+*.uvguix.*
+keil-assistant.log
+bs.log
+
+# 资料里的嵌入式构建缓存
+**/build/
+**/.ninja_deps
+**/.ninja_log
+**/CMakeCache.txt
+*.elf
+
 # Python
 __pycache__/
 *.py[cod]
-*.egg-info/
 .venv/
 venv/
 
-# 标定与运行产物（本地生成，勿提交）
-vision_place/calib.json
-vision_place/calib.json.tmp
-**/l0_stdout.txt
-**/l0_stderr.txt
-*.log
-
-# 编辑器 / 系统
-.vscode/
-.idea/
-.DS_Store
+# 系统
 Thumbs.db
 desktop.ini
-
-# 可选：若模型改走网盘，取消下一行注释
-# *.cvimodel
+.DS_Store

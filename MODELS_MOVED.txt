@@ -1,2 +1,0 @@
-﻿模型已复制到 vision_place/models/
-请以该目录为准。确认板上路径改好后，可手动删除根目录的 model_*.cvimodel / .mud 以免搞混。
