@@ -19,6 +19,7 @@
 #include "chassis.h"
 #include "imu.h"
 #include "servo.h"   /* 总线舵机夹爪 U/O/C */
+#include "vision.h"  /* v / vf / vc / ve / va 视觉联调 */
 #if ARM_ENABLE
 #include "arm.h"
 #include "gm6020.h"
@@ -740,7 +741,63 @@ static void tune_handle_line(char *ln)
         }
         break;
 
-    case 'v':                                   /* v：视觉状态（B3 帧 / 偏差 / 任务码） */
+    case 'v':                                   /* 视觉联调：
+                                                   v      状态
+                                                   vf1/0  云台跟瞄开/关（需 VISION_GIMBAL_FOLLOW）
+                                                   vc<hex> 发 FF cmd FE，如 vc02 / vc03
+                                                   ve<k>,<id> 过滤：k=1物料色1-6 / k=2环号1-3；ve0 清
+                                                   va     到位则合爪；未到位只回报 */
+        if ((ln[1] == 'f') || (ln[1] == 'F'))
+        {
+            uint8_t on = (ln[2] == '1') ? 1u : 0u;
+            Vision_FollowSetEnable(on);
+            tune_printf("OK,vf,%u\r\n", (unsigned)Vision_FollowIsEnable());
+        }
+        else if ((ln[1] == 'c') || (ln[1] == 'C'))
+        {
+            unsigned cmd = 0u;
+            if (sscanf(ln + 2, "%x", &cmd) == 1)
+            {
+                Vision_SendCmd((uint8_t)cmd);
+                Vision_BeginStep();
+                tune_printf("OK,vc,%02X\r\n", (unsigned)(uint8_t)cmd);
+            }
+            else tune_send("ERR,vc\r\n");
+        }
+        else if ((ln[1] == 'e') || (ln[1] == 'E'))
+        {
+            if (ln[2] == '0')
+            {
+                Vision_ClearExpect();
+                tune_send("OK,ve,clear\r\n");
+            }
+            else
+            {
+                unsigned k = 0u, id = 0u;
+                if (sscanf(ln + 2, "%u,%u", &k, &id) == 2)
+                {
+                    Vision_SetExpect((uint8_t)k, (uint8_t)id);
+                    Vision_BeginStep();
+                    tune_printf("OK,ve,%u,%u\r\n", k, id);
+                }
+                else tune_send("ERR,ve\r\n");
+            }
+        }
+        else if ((ln[1] == 'a') || (ln[1] == 'A'))
+        {
+            if (Vision_IsArrived() != 0u)
+            {
+                SERVO_Gripper(0u);
+                tune_printf("OK,va,CLOSE,P%u\r\n", (unsigned)SERVO_GetPos());
+            }
+            else
+            {
+                int16_t dx = 0, dy = 0;
+                (void)Vision_GetOffset(&dx, &dy);
+                tune_printf("WAIT,va,arr=0,dx=%d,dy=%d\r\n", (int)dx, (int)dy);
+            }
+        }
+        else
         {
             int16_t dx = 0, dy = 0;
             char    code[20];
@@ -748,12 +805,13 @@ static void tune_handle_line(char *ln)
 
             code[0] = 0;
             (void)Vision_TakeTask(code, (uint8_t)sizeof(code));
-            tune_printf("VIS,on=%u,bytes=%lu,frames=%lu,arr=%u,kind=%u,dx=%d,dy=%d\r\n",
+            tune_printf("VIS,on=%u,bytes=%lu,frames=%lu,arr=%u,kind=%u,fol=%u,dx=%d,dy=%d\r\n",
                         (unsigned)Vision_IsOnline(),
                         (unsigned long)Vision_RxByteCount(),
                         (unsigned long)Vision_FrameCount(),
                         (unsigned)Vision_IsArrived(),
                         (unsigned)Vision_GetKind(),
+                        (unsigned)Vision_FollowIsEnable(),
                         (int)dx, (int)dy);
             if (has == 0u) tune_send("VIS,NOFRAME\r\n");
             if (code[0] != 0) tune_printf("CODE,%s\r\n", code);

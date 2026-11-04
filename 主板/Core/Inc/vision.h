@@ -56,4 +56,9 @@ void     Vision_ClearTask(void);
 /* 兼容旧调用：dx=x-cx, dy=y-cy（未过滤的最近目标；无帧返回 0） */
 uint8_t  Vision_GetOffset(int16_t *dx, int16_t *dy);
 
+/* ---- 云台半自动跟瞄（config VISION_GIMBAL_FOLLOW）---- */
+void     Vision_FollowSetEnable(uint8_t en);   /* 1=跟水平误差；0=停 */
+uint8_t  Vision_FollowIsEnable(void);
+void     Vision_FollowTask(void);              /* 主循环调用；无升降只调 yaw */
+
 #endif /* __VISION_H__ */

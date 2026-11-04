@@ -171,7 +171,7 @@ def link_read_cmd():
     return None
 
 # ==================== 串口初始化（可选，车上用；桌面可无接线）====================
-uart = UART("/dev/ttyS0", 115200)
+uart = UART("/dev/ttyS1", 115200)
 time.sleep_ms(100)
 wifi_tcp_init()
 

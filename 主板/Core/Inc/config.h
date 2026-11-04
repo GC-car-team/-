@@ -1024,12 +1024,17 @@
 #define VISION_FOLLOW_DEAD_PX       1
 #define VISION_FOLLOW_FULL_PX       40
 
-/* ---- 云台跟画面（暂时关；要用改 1）---- */
-#define VISION_GIMBAL_FOLLOW        0
-#define VISION_GIMBAL_DIR          -1.0f
-#define VISION_GIMBAL_MAX_STEP_DEG  20.0f
-#define VISION_GIMBAL_MIN_STEP_DEG  12.0f
-#define VISION_GIMBAL_CLOSE_SCALE   0.4f
+/* ---- 云台跟画面（B 联调：无同步带时只跟水平 dx）----
+   1 = main 循环跑 Vision_FollowTask：用过滤后的视觉 dx 推 GM6020。
+   夹爪不自动：到位后蓝牙发 va 或 C。符号反了只改 DIR。 */
+#define VISION_GIMBAL_FOLLOW        1
+#define VISION_GIMBAL_DIR          -1.0f    /* dx>0 时云台步进符号；跟反了改成 +1.0f */
+#define VISION_GIMBAL_KP_DEG_PER_PX 0.12f   /* 每像素约多少度 */
+#define VISION_GIMBAL_MAX_STEP_DEG  3.0f    /* 单步上限（联调宜小，防甩） */
+#define VISION_GIMBAL_MIN_STEP_DEG  0.3f    /* 单步下限（小于死区不转） */
+#define VISION_GIMBAL_PERIOD_MS     40u     /* 跟瞄周期 */
+#define VISION_GIMBAL_CLAMP_SAFE    1       /* 1 = 限制在 ROT_SAFE_MIN/MAX */
+#define VISION_GIMBAL_CLOSE_SCALE   0.4f    /* 保留：旧粗跟瞄比例（未再用） */
 #define VISION_GIMBAL_TRAVEL_DEG    120.0f
 /* ==========================================================================
  * ⑳ ★比赛路线执行（来自视觉屏幕修正版）

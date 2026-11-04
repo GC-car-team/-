@@ -158,10 +158,13 @@ static float    s_trim_rpm[CHASSIS_WHEEL_NUM] = { CHASSIS_TRIM_RPM_FL, CHASSIS_T
 static float    s_crab_trim = CHASSIS_CRAB_TRIM;   /* ★侧滑补偿系数（vy = vx × 它） */
 static float    s_straight_trim = CHASSIS_STRAIGHT_TRIM_DEG;  /* ★走直微调角（度） */
 static float    s_hdg_target_deg;                  /* 想保持的航向 */
-static float    s_turn_target_deg;                 /* 旋转目标角 */
+static float    s_turn_target_deg;                 /* 旋转目标角（IMU 坐标系） */
+static float    s_turn_rel_deg;                    /* 相对目标角（IMU 断帧时用指令积分开环） */
+static float    s_turn_spun_cmd_deg;               /* 已按指令 wz 积出的相对转角 */
+static uint8_t  s_turn_openloop;                   /* 1 = 本段转向改走开环（粘性，中途不切回） */
 static uint8_t  s_turn_active;                     /* 1 = 正在转向 */
 static uint8_t  s_turn_done;                       /* 1 = 到位并稳住 */
-static uint32_t s_turn_settle_tick;                /* 进入到位阈值后开始计时 */
+static uint32_t s_turn_settle_tick;                /* 进入到位窗口后开始计时 */
 
 static float    s_strafe_vx;                       /* 平移时的前进速度 */
 static float    s_strafe_side_target;              /* 平移目标横向位移（mm） */
@@ -599,16 +602,15 @@ static void chassis_update_yaw(void)
  *   优先级：旋转 > 航向（同一个 wz 只能有一个主人）
  * ========================================================================== */
 
-/* ★IMU 数据是否"还新鲜"：电机一转 IMU 常常断帧，此时 yaw 是旧值，
-   拿它做闭环会持续输出同一个修正量 → 车越偏越大。
-   这里用"收帧计数有没有增长"判断：断帧超过 IMU_STALE_MS 就返回 0（不纠偏）。 */
+/* ★IMU 数据是否"还新鲜"：电机一转 IMU 常常断帧，此时 yaw 是旧值。
+   用 32 位帧计数（uint8 版会在 255 回绕时误判）。 */
 static uint8_t imu_fresh(void)
 {
     static uint32_t last_frames = 0u;
     static uint32_t last_tick   = 0u;
     static uint8_t  inited      = 0u;
     uint32_t now   = HAL_GetTick();
-    uint32_t frames = (uint32_t)IMU_GetFrames();
+    uint32_t frames = IMU_GetFrames32();
 
     if (inited == 0u) { inited = 1u; last_frames = frames; last_tick = now; return 1u; }
 
@@ -636,23 +638,45 @@ static float chassis_heading_correct(float dt)
     return pid_step(&s_pid_hdg, err, dt);
 }
 
-/* ② 旋转稳定：转到 s_turn_target_deg 并保持 */
 static float chassis_turn_correct(float dt)
 {
-    float err = wrap180(s_turn_target_deg - s_yaw_deg);
+    float err;
     float out;
-
-    /* ★IMU 断帧时不盲转：保持 0 输出，等数据回来再继续 */
-    if (imu_fresh() == 0u) { pid_reset(&s_pid_turn); return 0.0f; }
-
-    out = pid_step(&s_pid_turn, err, dt);
     static float prev_out;
-    float max_step = CHASSIS_TURN_SLEW_DPS2 * dt;          /* wz 变化率限制：防一顿一顿地甩 */
+    float max_step;
 
+    /* IMU 新鲜：闭环跟融合 yaw。
+       IMU 断帧：轮速反馈稀疏，轮式航向几乎积不动 → 误差钉在 ~90° 会一直打满转好几圈。
+       改用「指令 wz 积分」开环，并粘住，避免 fresh/stale 来回切。 */
+    if ((imu_fresh() == 0u) && (s_turn_openloop == 0u))
+    {
+        float start = wrap180(s_turn_target_deg - s_turn_rel_deg);
+        s_turn_spun_cmd_deg = wrap180(s_yaw_deg - start); /* 中途切入：带上 IMU 已转过的量 */
+        s_turn_openloop = 1u;
+    }
+
+    if (s_turn_openloop == 0u)
+    {
+        err = wrap180(s_turn_target_deg - s_yaw_deg);
+        out = pid_step(&s_pid_turn, err, dt);
+    }
+    else
+    {
+        pid_reset(&s_pid_turn);
+        err = s_turn_rel_deg - s_turn_spun_cmd_deg;   /* 不用 wrap：开环相对角线性积 */
+        out = err * 4.0f;
+        if (out >  (float)CHASSIS_TURN_WZ_MAX) out =  (float)CHASSIS_TURN_WZ_MAX;
+        if (out < -(float)CHASSIS_TURN_WZ_MAX) out = -(float)CHASSIS_TURN_WZ_MAX;
+        /* 接近目标时不再抬最小角速度，否则 2° 误差也会被抬到 25°/s 冲过 */
+        if ((err < s_turn_arrive_deg) && (err > -s_turn_arrive_deg)) out = 0.0f;
+    }
+
+    max_step = CHASSIS_TURN_SLEW_DPS2 * dt;
     if (max_step > 0.0f) out = clampf(out, prev_out - max_step, prev_out + max_step);
     prev_out = out;
 
-    /* 到位判定：进阈值 + 稳住 CHASSIS_TURN_SETTLE_MS（都可在线上改） */
+    if (s_turn_openloop != 0u) s_turn_spun_cmd_deg += out * dt;
+
     if ((err < s_turn_arrive_deg) && (err > -s_turn_arrive_deg))
     {
         if (s_turn_settle_tick == 0u) s_turn_settle_tick = HAL_GetTick();
@@ -1044,6 +1068,9 @@ void Chassis_TurnStart(float deg)
 {
     /* ★多打 CHASSIS_TURN_BIAS_DEG：实测停下会回弹约 1.9°，这样回弹后正好停在目标上 */
     s_turn_target_deg  = wrap180(deg + (float)CHASSIS_TURN_BIAS_DEG);
+    s_turn_rel_deg     = wrap180(s_turn_target_deg - s_yaw_deg);
+    s_turn_spun_cmd_deg = 0.0f;
+    s_turn_openloop    = (imu_fresh() == 0u) ? 1u : 0u;
     s_turn_active      = 1u;
     s_turn_done        = 0u;
     s_turn_settle_tick = 0u;

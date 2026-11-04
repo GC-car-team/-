@@ -828,6 +828,11 @@ int main(void)
     SERVO_Task();
 #endif
 
+#if VISION_ENABLE && VISION_GIMBAL_FOLLOW
+    /* B 联调：视觉水平误差 → GM6020；夹爪仍手动 O/C 或 va */
+    Vision_FollowTask();
+#endif
+
     /* CAN 引脚软件示波器：高频采样 PA12/PA11，统计低电平占比（ch12/ch13） */
     main_can_pin_sample();
 

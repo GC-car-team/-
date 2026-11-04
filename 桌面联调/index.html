@@ -2,108 +2,260 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <title>相机+总线舵机 桌面联调</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GC-Car 蓝牙联调</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <style>
-    :root { --bg:#1a1d23; --card:#242933; --fg:#e8eaed; --mut:#9aa0a6; --acc:#3d8bfd; --ok:#3dd68c; --bad:#f07178; }
+    :root {
+      --bg0: #0e1410;
+      --bg1: #162019;
+      --panel: #1c2920;
+      --line: #2f4638;
+      --fg: #e7f0e4;
+      --mut: #8aa092;
+      --acc: #c4f061;
+      --acc2: #3ecf8e;
+      --warn: #e8a54b;
+      --bad: #e86a5c;
+    }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: "Segoe UI", "PingFang SC", sans-serif; background:var(--bg); color:var(--fg); }
-    main { max-width: 920px; margin: 0 auto; padding: 1.25rem; }
-    h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
-    section { background: var(--card); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
-    section h2 { font-size: 0.95rem; margin: 0 0 0.75rem; color: var(--mut); font-weight: 600; }
-    label { display:block; font-size: 0.8rem; color: var(--mut); margin-bottom: 0.25rem; }
-    select, input { width: 100%; padding: 0.45rem 0.5rem; border-radius: 6px; border: 1px solid #3c424d; background:#1a1d23; color:var(--fg); }
-    .row { display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.75rem; align-items: end; }
-    .btns { display:flex; flex-wrap:wrap; gap: 0.5rem; }
-    button { padding: 0.5rem 0.9rem; border:0; border-radius: 6px; background: var(--acc); color:#fff; font-weight:600; cursor:pointer; }
-    button.secondary { background:#3c424d; }
-    button.danger { background: var(--bad); }
-    button:disabled { opacity: 0.45; cursor: not-allowed; }
-    .stat { font-family: ui-monospace, Consolas, monospace; font-size: 0.85rem; line-height: 1.5; }
-    .ok { color: var(--ok); } .bad { color: var(--bad); }
-    #log { height: 180px; overflow:auto; font-family: ui-monospace, Consolas, monospace; font-size: 0.75rem; background:#12151a; padding: 0.5rem; border-radius: 6px; }
-    .cross { width: 160px; height: 120px; background:#12151a; border-radius: 6px; position: relative; margin-top: 0.5rem; }
-    .cross .dot { position:absolute; width:8px; height:8px; margin:-4px; border-radius:50%; background:var(--ok); }
+    body {
+      margin: 0; min-height: 100vh; color: var(--fg);
+      font-family: "Space Grotesk", sans-serif;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #243528 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #1a2a22 0%, transparent 50%),
+        linear-gradient(165deg, var(--bg0), var(--bg1));
+    }
+    main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+    .hero { margin-bottom: 1.5rem; }
+    .hero .brand { font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--acc); margin: 0 0 0.35rem; }
+    .hero h1 { font-size: clamp(1.6rem, 3vw, 2.1rem); margin: 0 0 0.4rem; font-weight: 700; }
+    .hero p { margin: 0; color: var(--mut); font-size: 0.95rem; max-width: 36rem; line-height: 1.45; }
+    .grid { display: grid; gap: 1rem; }
+    @media (min-width: 860px) {
+      .grid-2 { grid-template-columns: 1.1fr 0.9fr; }
+      .span-2 { grid-column: 1 / -1; }
+    }
+    section {
+      background: color-mix(in srgb, var(--panel) 92%, black);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1rem 1.1rem 1.15rem;
+    }
+    section h2 {
+      margin: 0 0 0.85rem; font-size: 0.8rem; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--mut);
+    }
+    label { display: block; font-size: 0.72rem; color: var(--mut); margin-bottom: 0.28rem; }
+    input, select {
+      width: 100%; padding: 0.55rem 0.6rem; border-radius: 8px;
+      border: 1px solid var(--line); background: #101811; color: var(--fg);
+      font-family: "IBM Plex Mono", monospace; font-size: 0.85rem;
+    }
+    .row { display: grid; gap: 0.65rem; align-items: end; }
+    .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .row-4 { grid-template-columns: 1.2fr 0.7fr auto auto; }
+    .row-2 { grid-template-columns: 1fr 1fr; }
+    .btns { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+    button {
+      padding: 0.55rem 0.85rem; border: 0; border-radius: 8px;
+      background: var(--acc); color: #102010; font-weight: 700;
+      font-family: inherit; cursor: pointer; font-size: 0.88rem;
+    }
+    button:hover { filter: brightness(1.05); }
+    button.ghost { background: #26352b; color: var(--fg); }
+    button.danger { background: var(--bad); color: #fff; }
+    button.soft { background: #314a38; color: var(--fg); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .hint { font-size: 0.78rem; color: var(--mut); margin: 0.55rem 0 0; line-height: 1.4; }
+    .stat { font-family: "IBM Plex Mono", monospace; font-size: 0.8rem; line-height: 1.55; }
+    .ok { color: var(--acc2); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+    .cross {
+      width: 100%; max-width: 240px; aspect-ratio: 4/3; background: #0c120e;
+      border: 1px solid var(--line); border-radius: 10px; position: relative; margin-top: 0.5rem;
+    }
+    .cross::before, .cross::after {
+      content: ""; position: absolute; background: #2a4032;
+    }
+    .cross::before { left: 50%; top: 8%; bottom: 8%; width: 1px; transform: translateX(-50%); }
+    .cross::after { top: 50%; left: 8%; right: 8%; height: 1px; transform: translateY(-50%); }
+    .cross .dot {
+      position: absolute; width: 10px; height: 10px; margin: -5px;
+      border-radius: 50%; background: var(--acc); box-shadow: 0 0 0 3px rgba(196,240,97,.2);
+      display: none;
+    }
+    #log {
+      height: 200px; overflow: auto; font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem; background: #0c120e; border: 1px solid var(--line);
+      border-radius: 10px; padding: 0.65rem; line-height: 1.45; white-space: pre-wrap;
+    }
+    .pill {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.72rem;
+      background: #243328; color: var(--mut); font-family: "IBM Plex Mono", monospace;
+    }
+    .pill.on { color: #102010; background: var(--acc); font-weight: 600; }
   </style>
 </head>
 <body>
 <main>
-  <h1>相机 + 总线舵机 桌面联调（P0–P2）</h1>
+  <header class="hero">
+    <p class="brand">GC-Car Bench</p>
+    <h1>蓝牙无线联调</h1>
+    <p>经 HC-05 发主板 TUNE：走直、转角、舵机与视觉命令。可选 WiFi 看相机帧。默认波特率 9600。</p>
+  </header>
 
-  <section>
-    <h2>连接（双口隔离）</h2>
-    <div class="row">
-      <div><label>舵机 COM</label><select id="servoPort"></select></div>
-      <div><label>视觉 COM（可空）</label><select id="visionPort"><option value="">—</option></select></div>
-      <div><label>波特率</label><input id="baud" value="115200" /></div>
-      <div class="btns">
-        <button id="btnConnect">连接</button>
-        <button class="secondary" id="btnDisc">断开</button>
-        <button class="secondary" id="btnRefresh">刷新口</button>
+  <div class="grid grid-2">
+    <section class="span-2">
+      <h2>连接</h2>
+      <div class="row row-4">
+        <div>
+          <label>蓝牙 COM（HC-05）</label>
+          <select id="btPort"></select>
+        </div>
+        <div>
+          <label>波特率</label>
+          <input id="baud" value="9600" />
+        </div>
+        <button id="btnRefresh" class="ghost" type="button">刷新口</button>
+        <div class="btns">
+          <button id="btnConnect" type="button">连接</button>
+          <button id="btnDisc" class="ghost" type="button">断开</button>
+        </div>
       </div>
-    </div>
-    <p class="stat" id="portHint" style="margin:0.5rem 0 0">端口：检测中…</p>
-    <div class="row" style="grid-template-columns:1fr 1fr; margin-top:0.5rem">
-      <div><label>手动舵机口（扫不到时填，如 COM12）</label><input id="servoManual" placeholder="COM12" /></div>
-      <div><label>手动视觉串口（可空；USB 接相机通常无 COM）</label><input id="visionManual" placeholder="COM3" /></div>
-    </div>
-    <div class="row" style="grid-template-columns:1fr 1fr auto; margin-top:0.75rem">
-      <div><label>相机 WiFi IP（推荐）</label><input id="visionHost" placeholder="192.168.x.x" /></div>
-      <div><label>TCP 端口</label><input id="visionTcpPort" type="number" value="5555" /></div>
-      <button class="secondary" id="btnProbe" type="button">只测相机</button>
-    </div>
-    <p style="font-size:0.75rem;color:var(--mut);margin:0.4rem 0 0">
-      USB 直连 MaixCam 一般<strong>不会</strong>出现串口号。请相机先连同一 WiFi，运行
-      <code>桌面联调/maixcam_wifi_bench.py</code>，把屏上 IP 填到上面再点连接。
-    </p>
-  </section>
+      <div class="row row-2" style="margin-top:0.65rem">
+        <div><label>手动 COM（扫不到时）</label><input id="btManual" placeholder="COM8" /></div>
+        <div><label>状态</label><div class="stat" id="linkStat" style="padding-top:0.45rem">—</div></div>
+      </div>
+      <div class="row row-3" style="margin-top:0.65rem">
+        <div><label>相机 WiFi IP（可选）</label><input id="visionHost" placeholder="192.168.x.x" /></div>
+        <div><label>TCP</label><input id="visionTcpPort" type="number" value="5555" /></div>
+        <button id="btnProbe" class="ghost" type="button">只测相机</button>
+      </div>
+      <p class="hint" id="portHint">端口检测中… PC 先配对 HC-05，在设备管理器确认蓝牙串口号。</p>
+    </section>
 
-  <section>
-    <h2>舵机 P0</h2>
-    <div class="btns">
-      <button id="btnOpen">张开</button>
-      <button id="btnClose">合紧</button>
-      <button class="danger" id="btnStop">急停</button>
-      <button class="secondary" id="btnReset">复位</button>
-    </div>
-    <p class="stat" id="servoStat">state: —</p>
-    <div class="row" style="grid-template-columns:1fr 1fr auto; margin-top:0.75rem">
-      <div><label>自定义 P</label><input id="pos" type="number" value="1500" min="500" max="2500" /></div>
-      <div><label>T ms</label><input id="tms" type="number" value="1000" min="100" max="9999" /></div>
-      <button class="secondary" id="btnGoto">Goto</button>
-    </div>
-    <div class="row" style="grid-template-columns:1fr 1fr auto; margin-top:0.75rem">
-      <div><label>标定张开 P</label><input id="openP" type="number" value="2000" min="500" max="2500" /></div>
-      <div><label>标定合紧 P</label><input id="closeP" type="number" value="600" min="500" max="2500" /></div>
-      <button class="secondary" id="btnCalib">写入本次进程</button>
-    </div>
-    <p style="font-size:0.75rem;color:var(--mut);margin:0.4rem 0 0">无主板时只标定舵机；正式值以后抄到主板 <code>BUS_SERVO_OPEN_P/CLOSE_P</code>。</p>
-  </section>
+    <section>
+      <h2>底盘</h2>
+      <div class="row row-2">
+        <div><label>前进距离 mm（负=后退）</label><input id="goMm" type="number" value="500" /></div>
+        <div class="btns" style="padding-bottom:2px">
+          <button id="btnGo" type="button">走直 G</button>
+          <button id="btnZero" class="soft" type="button">航向归零 Z</button>
+        </div>
+      </div>
+      <div class="btns" style="margin-top:0.75rem">
+        <button id="btnL90" class="soft" type="button">左转 90°</button>
+        <button id="btnR90" class="soft" type="button">右转 90°</button>
+        <button id="btnStop" class="danger" type="button">急停 X</button>
+      </div>
+      <p class="hint">走直会锁定起步航向并纠偏；遥控连发 w 不会回正，请用本页 G/T。</p>
+    </section>
 
-  <section>
-    <h2>视觉 P1（可只接舵机；相机串口可选）</h2>
-    <p class="stat" id="visStat">vision: —</p>
-    <div class="cross" id="cross"><div class="dot" id="dot" style="display:none"></div></div>
-    <p style="font-size:0.8rem;color:var(--mut);margin:0.5rem 0">向相机发模式（FF cmd FE），与主板契约一致：</p>
-    <div class="btns">
-      <button class="secondary" data-vcmd="1">01 物料全色</button>
-      <button class="secondary" data-vcmd="2">02 圆环</button>
-      <button class="secondary" data-vcmd="3">03 红</button>
-      <button class="secondary" data-vcmd="7">07 黄</button>
-      <button class="secondary" data-vcmd="5">05 蓝</button>
-      <button class="secondary" data-vcmd="4">04 绿</button>
-      <button class="secondary" data-vcmd="6">06 黑</button>
-      <button class="secondary" data-vcmd="8">08 浅蓝</button>
-    </div>
-    <div class="btns" style="margin-top:0.75rem">
-      <button id="btnConfirm">确认合爪（P2）</button>
-    </div>
-  </section>
+    <section class="span-2">
+      <h2>相机 + 舵机配合（车上 UART7）</h2>
+      <p class="hint" style="margin-top:0">流程：张开 → 切视觉模式 → 过滤目标 → 云台跟瞄 → 看 dx/dy → 到位合爪。相机跑 <code>视觉/main.py</code>，与主板串口相连。</p>
+      <div class="row row-3" style="margin-top:0.75rem">
+        <div>
+          <label>目标类型</label>
+          <select id="coopTarget">
+            <option value="mat,3,1">物料 · 红 (vc03 / ve1,1)</option>
+            <option value="mat,7,2">物料 · 黄 (vc07 / ve1,2)</option>
+            <option value="mat,5,3">物料 · 蓝 (vc05 / ve1,3)</option>
+            <option value="mat,4,4">物料 · 绿 (vc04 / ve1,4)</option>
+            <option value="mat,6,5">物料 · 黑 (vc06 / ve1,5)</option>
+            <option value="mat,8,6">物料 · 浅蓝 (vc08 / ve1,6)</option>
+            <option value="ring,2,1">圆环 · 1 (vc02 / ve2,1)</option>
+            <option value="ring,2,2">圆环 · 2 (vc02 / ve2,2)</option>
+            <option value="ring,2,3">圆环 · 3 (vc02 / ve2,3)</option>
+          </select>
+        </div>
+        <div>
+          <label>选项</label>
+          <div class="btns" style="padding-top:0.35rem">
+            <label class="pill" style="cursor:pointer"><input type="checkbox" id="coopFollow" checked /> 云台跟瞄</label>
+            <label class="pill" style="cursor:pointer"><input type="checkbox" id="coopAuto" /> 到位自动合爪</label>
+          </div>
+        </div>
+        <div class="btns">
+          <button id="btnCoopStart" type="button">开始配合</button>
+          <button id="btnCoopStop" class="ghost" type="button">停止</button>
+          <button id="btnArrive" class="soft" type="button">合爪 va</button>
+        </div>
+      </div>
+      <p class="stat" id="coopStat" style="margin-top:0.75rem">MCU 视觉: —</p>
+      <div class="cross" id="mcuCross" style="max-width:280px"><div class="dot" id="mcuDot"></div></div>
+      <p class="hint">准星用主板回报的 dx/dy（中心为 0）。arr=1 表示已对准，可点合爪。</p>
+    </section>
 
-  <section>
-    <h2>日志（最近 50）</h2>
-    <div id="log"></div>
-  </section>
+    <section>
+      <h2>舵机（经主板）</h2>
+      <div class="btns">
+        <button id="btnOpen" type="button">张开 O</button>
+        <button id="btnClose" type="button">合紧 C</button>
+      </div>
+      <div class="row row-3" style="margin-top:0.75rem">
+        <div><label>自定义 P</label><input id="pos" type="number" value="1500" min="500" max="2500" /></div>
+        <div><label>标定开/合（网页记忆）</label>
+          <div class="row row-2">
+            <input id="openP" type="number" value="2000" title="open" />
+            <input id="closeP" type="number" value="600" title="close" />
+          </div>
+        </div>
+        <div class="btns">
+          <button id="btnGoto" class="ghost" type="button">U 定位</button>
+          <button id="btnCalib" class="ghost" type="button">记 P</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>视觉命令（经蓝牙 → 主板 → UART7）</h2>
+      <div class="btns">
+        <button class="ghost" data-vcmd="1">01 全色</button>
+        <button class="ghost" data-vcmd="2">02 圆环</button>
+        <button class="ghost" data-vcmd="3">03 红</button>
+        <button class="ghost" data-vcmd="7">07 黄</button>
+        <button class="ghost" data-vcmd="5">05 蓝</button>
+        <button class="ghost" data-vcmd="4">04 绿</button>
+        <button class="ghost" data-vcmd="6">06 黑</button>
+        <button class="ghost" data-vcmd="8">08 浅蓝</button>
+      </div>
+      <div class="btns" style="margin-top:0.65rem">
+        <button id="btnFolOn" class="soft" type="button">跟瞄 vf1</button>
+        <button id="btnFolOff" class="ghost" type="button">停跟 vf0</button>
+        <button id="btnVis" class="ghost" type="button">查状态 v</button>
+      </div>
+      <div class="row row-3" style="margin-top:0.65rem">
+        <div><label>过滤 kind（1物料/2环）</label><input id="expKind" type="number" value="1" min="0" max="2" /></div>
+        <div><label>id（色1-6 / 环1-3）</label><input id="expId" type="number" value="1" min="0" max="6" /></div>
+        <button id="btnExpect" class="ghost" type="button">设 ve</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>相机监视（可选 WiFi）</h2>
+      <p class="stat" id="visStat">vision: —</p>
+      <div class="cross" id="cross"><div class="dot" id="dot"></div></div>
+      <p class="hint">仅显示联调脚本帧；模式切换请用左侧「经蓝牙」按钮，与车上 UART7 一致。</p>
+    </section>
+
+    <section class="span-2">
+      <h2>日志 · 原始命令</h2>
+      <div class="row row-2" style="margin-bottom:0.65rem">
+        <div><label>自定义 TUNE 一行</label><input id="raw" placeholder="例如 G800 或 Y180" /></div>
+        <div class="btns" style="align-items:end">
+          <button id="btnRaw" class="ghost" type="button">发送</button>
+          <span class="pill" id="verPill">ver —</span>
+          <span class="pill" id="btPill">BT off</span>
+        </div>
+      </div>
+      <div id="log"></div>
+    </section>
+  </div>
 </main>
 <script>
 async function j(url, opt) {
@@ -113,126 +265,179 @@ async function j(url, opt) {
   try { data = text ? JSON.parse(text) : null; } catch (_) {}
   if (!r.ok) {
     const detail = (data && data.detail) ? data.detail : text;
-    throw new Error(url + ' → HTTP ' + r.status + ' ' + detail);
+    throw new Error(detail || (url + ' HTTP ' + r.status));
   }
   return data;
+}
+function pickBt() {
+  const m = (document.getElementById('btManual').value || '').trim();
+  if (m) return m.toUpperCase().replace(/\s/g, '');
+  return document.getElementById('btPort').value;
 }
 async function refreshPorts() {
   const hint = document.getElementById('portHint');
   try {
     const ports = await j('/api/ports');
-    const fill = (sel, withEmpty) => {
-      const el = document.getElementById(sel);
-      const cur = el.value;
-      el.innerHTML = withEmpty ? '<option value="">—</option>' : '';
-      if (!withEmpty && ports.length === 0) {
-        const o = document.createElement('option');
-        o.value = ''; o.textContent = '（无端口，请用下方手动填写）';
-        el.appendChild(o);
-      }
+    const el = document.getElementById('btPort');
+    const cur = el.value;
+    el.innerHTML = '';
+    if (!ports.length) {
+      el.innerHTML = '<option value="">（无端口）</option>';
+      hint.innerHTML = '<span class="bad">扫到 0 个串口</span>：确认 HC-05 已配对并出现 COM。';
+    } else {
+      let prefer = '';
       ports.forEach(p => {
         const o = document.createElement('option');
-        o.value = p.device; o.textContent = p.device + ' — ' + p.desc;
+        o.value = p.device;
+        o.textContent = p.device + ' — ' + p.desc;
         el.appendChild(o);
+        if ((p.bt_name || '').toUpperCase().includes('HC-05')) prefer = p.device;
       });
-      if ([...el.options].some(o => o.value === cur)) el.value = cur;
-    };
-    fill('servoPort', false);
-    fill('visionPort', true);
-    if (ports.length === 0) {
-      hint.innerHTML = '<span class="bad">扫到 0 个串口</span>：检查 USB、CH340 驱动；或下方手动填 COM号。须用 start.bat 打开的 http://127.0.0.1:8765，不要双击打开 html。';
-    } else {
-      hint.innerHTML = '<span class="ok">扫到 ' + ports.length + ' 个</span>：' +
-        ports.map(p => p.device).join(', ') +
-        '（设备管理器里「端口(COM和LPT)」可对照）';
+      if (prefer) el.value = prefer;
+      else if ([...el.options].some(o => o.value === cur)) el.value = cur;
+      const hc = ports.filter(p => (p.bt_name || '').toUpperCase().includes('HC'));
+      hint.innerHTML = hc.length
+        ? '<span class="ok">找到车上蓝牙</span>：' + hc.map(p => p.device + '(' + p.bt_name + ')').join(', ') + ' · 波特率 9600'
+        : '<span class="ok">扫到 ' + ports.length + ' 个</span>：优先选名称含 HC-05 的口；没有则到「设置→蓝牙」确认已配对并接通。';
     }
   } catch (e) {
-    hint.innerHTML = '<span class="bad">无法读 /api/ports</span>：' + e.message +
-      ' —— 请先运行 start.bat，打开 http://127.0.0.1:8766/ （端口 8766）';
+    hint.innerHTML = '<span class="bad">读端口失败</span>：请用 start.bat 打开 http://127.0.0.1:8766/';
   }
 }
-function pickPort(selectId, manualId) {
-  const m = (document.getElementById(manualId).value || '').trim();
-  if (m) return m.toUpperCase().replace(/\s/g, '');
-  return document.getElementById(selectId).value;
+async function connect() {
+  const bt = pickBt();
+  if (!bt) { alert('先选蓝牙 COM'); return; }
+  const host = (document.getElementById('visionHost').value || '').trim();
+  try {
+    const r = await j('/api/connect', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bt_port: bt,
+        baud: +document.getElementById('baud').value || 9600,
+        vision_host: host,
+        vision_tcp_port: +document.getElementById('visionTcpPort').value || 5555
+      })
+    });
+    if (host && !r.ok_vision) alert('蓝牙已连，相机失败：\n' + (r.vision_error || ''));
+  } catch (e) { alert('连接失败：' + e.message); }
 }
 document.getElementById('btnRefresh').onclick = refreshPorts;
+document.getElementById('btnConnect').onclick = connect;
+document.getElementById('btnDisc').onclick = () => j('/api/disconnect', { method: 'POST' });
 document.getElementById('btnProbe').onclick = async () => {
-  const host = (document.getElementById('visionHost').value || '').trim();
-  if (!host) { alert('先填相机 WiFi IP'); return; }
   try {
-    const r = await j('/api/probe_vision', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ vision_host: host, vision_tcp_port: +document.getElementById('visionTcpPort').value || 5555 })});
-    alert('相机 TCP 通：' + r.host + ':' + r.port);
-  } catch (e) {
-    alert(String(e.message || e));
-  }
-};
-document.getElementById('btnConnect').onclick = async () => {
-  const servo = pickPort('servoPort', 'servoManual');
-  const vision = pickPort('visionPort', 'visionManual');
-  const host = (document.getElementById('visionHost').value || '').trim();
-  if (!servo && !host && !vision) {
-    alert('至少填：舵机 COM，或相机 WiFi IP');
-    return;
-  }
-  try {
-    const r = await j('/api/connect', { method:'POST', headers:{'Content-Type':'application/json'},
+    const r = await j('/api/probe_vision', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        servo_port: servo,
-        vision_port: host ? '' : vision,
-        vision_host: host,
-        vision_tcp_port: +document.getElementById('visionTcpPort').value || 5555,
-        baud: +document.getElementById('baud').value
-      })});
-    if (host && !r.ok_vision) {
-      alert('舵机可能已连，但相机失败：\n' + (r.vision_error || 'unknown'));
-    }
-  } catch (e) {
-    alert('连接失败：' + (e.message || e));
-  }
+        vision_host: document.getElementById('visionHost').value,
+        vision_tcp_port: +document.getElementById('visionTcpPort').value || 5555
+      })
+    });
+    alert('相机通 ' + r.host + ':' + r.port);
+  } catch (e) { alert(e.message); }
 };
-document.getElementById('btnDisc').onclick = () => j('/api/disconnect', {method:'POST'});
-document.getElementById('btnOpen').onclick = () => j('/api/open', {method:'POST'});
-document.getElementById('btnClose').onclick = () => j('/api/close', {method:'POST'});
-document.getElementById('btnStop').onclick = () => j('/api/stop', {method:'POST'});
-document.getElementById('btnReset').onclick = () => j('/api/reset', {method:'POST'});
-document.getElementById('btnConfirm').onclick = () => j('/api/confirm_close', {method:'POST'});
-document.getElementById('btnGoto').onclick = () => j('/api/goto', {method:'POST', headers:{'Content-Type':'application/json'},
-  body: JSON.stringify({ pos:+document.getElementById('pos').value, ms:+document.getElementById('tms').value })});
-document.getElementById('btnCalib').onclick = () => j('/api/calib', {method:'POST', headers:{'Content-Type':'application/json'},
-  body: JSON.stringify({
-    open_p: +document.getElementById('openP').value,
-    close_p: +document.getElementById('closeP').value,
-    move_ms: +document.getElementById('tms').value
-  })});
+document.getElementById('btnGo').onclick = () =>
+  j('/api/chassis/go', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mm: +document.getElementById('goMm').value }) });
+document.getElementById('btnL90').onclick = () =>
+  j('/api/chassis/turn', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deg: 90 }) });
+document.getElementById('btnR90').onclick = () =>
+  j('/api/chassis/turn', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deg: -90 }) });
+document.getElementById('btnStop').onclick = () => j('/api/chassis/stop', { method: 'POST' });
+document.getElementById('btnZero').onclick = () => j('/api/chassis/zero', { method: 'POST' });
+document.getElementById('btnOpen').onclick = () => j('/api/open', { method: 'POST' });
+document.getElementById('btnClose').onclick = () => j('/api/close', { method: 'POST' });
+document.getElementById('btnArrive').onclick = () => j('/api/arrive_close', { method: 'POST' });
+document.getElementById('btnCoopStart').onclick = async () => {
+  const raw = document.getElementById('coopTarget').value.split(',');
+  // mat|ring, cmd, id
+  const kind = raw[0] === 'ring' ? 2 : 1;
+  const cmd = +raw[1];
+  const id = +raw[2];
+  try {
+    await j('/api/coop/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cmd, kind, id,
+        follow: document.getElementById('coopFollow').checked,
+        auto_close: document.getElementById('coopAuto').checked
+      })
+    });
+  } catch (e) { alert(e.message); }
+};
+document.getElementById('btnCoopStop').onclick = () => j('/api/coop/stop', { method: 'POST' });
+document.getElementById('btnGoto').onclick = () =>
+  j('/api/goto', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pos: +document.getElementById('pos').value }) });
+document.getElementById('btnCalib').onclick = () =>
+  j('/api/calib', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ open_p: +document.getElementById('openP').value, close_p: +document.getElementById('closeP').value }) });
+document.getElementById('btnFolOn').onclick = () => j('/api/follow?on=1', { method: 'POST' });
+document.getElementById('btnFolOff').onclick = () => j('/api/follow?on=0', { method: 'POST' });
+document.getElementById('btnVis').onclick = () =>
+  j('/api/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ line: 'v' }) });
+document.getElementById('btnExpect').onclick = () =>
+  j('/api/expect', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kind: +document.getElementById('expKind').value, id: +document.getElementById('expId').value }) });
+document.getElementById('btnRaw').onclick = () =>
+  j('/api/send', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ line: document.getElementById('raw').value }) });
 document.querySelectorAll('[data-vcmd]').forEach(btn => {
-  btn.onclick = () => j('/api/vision_cmd', { method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ cmd: +btn.getAttribute('data-vcmd') })});
+  btn.onclick = () => j('/api/vision_cmd', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cmd: +btn.getAttribute('data-vcmd'), via: 'bt' })
+  });
 });
 
 async function poll() {
   try {
     const s = await j('/api/status');
-    const ok = s.fault ? 'bad' : 'ok';
-    document.getElementById('servoStat').innerHTML =
-      `state: <span class="${ok}">${s.servo_state}</span> pos=${s.servo_pos ?? '—'} ` +
-      `servo=${s.servo_connected?'ON':'OFF'} vision=${s.vision_connected?'ON':'OFF'}(${s.vision_mode||'-'}) ` +
-      (s.fault ? `<span class="bad">${s.fault}</span>` : '');
+    document.getElementById('verPill').textContent = s.ver || '—';
+    const bt = document.getElementById('btPill');
+    bt.textContent = s.bt ? 'BT on' : 'BT off';
+    bt.className = 'pill' + (s.bt ? ' on' : '');
+    document.getElementById('linkStat').innerHTML = s.bt
+      ? '<span class="ok">蓝牙已连接</span> · cam=' + (s.vision_connected ? 'ON' : 'OFF')
+      : '<span class="bad">未连接</span>';
+    if (s.fault) document.getElementById('linkStat').innerHTML += ' <span class="warn">' + s.fault + '</span>';
     const v = s.vision;
     document.getElementById('visStat').textContent = v
-      ? (v.kind==='mat' ? `mat (${v.x},${v.y}) color=${v.color}` : `ring (${v.x},${v.y}) digit=${v.digit}`)
+      ? (v.kind === 'mat' ? `mat (${v.x},${v.y}) color=${v.color}` : `ring (${v.x},${v.y}) digit=${v.digit}`)
       : 'vision: —';
     const dot = document.getElementById('dot');
+    const box = document.getElementById('cross');
     if (v) {
       dot.style.display = 'block';
-      dot.style.left = (Math.min(160, Math.max(0, v.x * 160 / 320))) + 'px';
-      dot.style.top = (Math.min(120, Math.max(0, v.y * 120 / 240))) + 'px';
+      dot.style.left = (Math.min(1, Math.max(0, v.x / 320)) * box.clientWidth) + 'px';
+      dot.style.top = (Math.min(1, Math.max(0, v.y / 240)) * box.clientHeight) + 'px';
     } else dot.style.display = 'none';
+
+    const mv = s.mcu_vis;
+    const coop = s.coop || {};
+    const coopEl = document.getElementById('coopStat');
+    if (mv) {
+      const arrCls = mv.arr ? 'ok' : 'warn';
+      coopEl.innerHTML =
+        (coop.on ? '<span class="ok">配合中</span> · ' : '') +
+        `on=${mv.on} frames=${mv.frames} kind=${mv.kind} fol=${mv.fol} ` +
+        `dx=${mv.dx} dy=${mv.dy} <span class="${arrCls}">arr=${mv.arr}</span>` +
+        (coop.closed ? ' · <span class="ok">已合爪</span>' : '');
+      const mdot = document.getElementById('mcuDot');
+      const mbox = document.getElementById('mcuCross');
+      // dx,dy 相对中心；映射到准星（cx=160 → 中线）
+      const px = 160 + mv.dx, py = 120 + mv.dy;
+      mdot.style.display = 'block';
+      mdot.style.left = (Math.min(1, Math.max(0, px / 320)) * mbox.clientWidth) + 'px';
+      mdot.style.top = (Math.min(1, Math.max(0, py / 240)) * mbox.clientHeight) + 'px';
+      mdot.style.background = mv.arr ? 'var(--acc2)' : 'var(--acc)';
+    } else {
+      coopEl.textContent = coop.on ? '配合中，等待 VIS…' : 'MCU 视觉: —';
+      document.getElementById('mcuDot').style.display = 'none';
+    }
     if (s.open_p != null) document.getElementById('openP').value = s.open_p;
     if (s.close_p != null) document.getElementById('closeP').value = s.close_p;
-    document.getElementById('log').innerHTML = (s.log||[]).map(e => e.t+' '+e.m).join('<br>');
-  } catch (e) {}
+    document.getElementById('log').textContent = (s.log || []).map(e => e.t + '  ' + e.m).join('\n');
+  } catch (_) {}
   setTimeout(poll, 400);
 }
 refreshPorts();

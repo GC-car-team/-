@@ -6,6 +6,7 @@
   */
 #include "vision.h"
 #include "usart.h"
+#include "gm6020.h"
 
 #if VISION_ENABLE && defined(HAL_UART_MODULE_ENABLED)
 
@@ -300,6 +301,73 @@ uint8_t Vision_GetOffset(int16_t *dx, int16_t *dy)
     return 1u;
 }
 
+#if VISION_GIMBAL_FOLLOW
+static uint8_t  s_follow_en;
+static uint32_t s_follow_tick;
+static uint32_t s_follow_last_frames;
+
+void Vision_FollowSetEnable(uint8_t en)
+{
+    s_follow_en = (en != 0u) ? 1u : 0u;
+    s_follow_last_frames = s_frames;
+}
+
+uint8_t Vision_FollowIsEnable(void)
+{
+    return s_follow_en;
+}
+
+void Vision_FollowTask(void)
+{
+    int16_t dx = 0, dy = 0;
+    float step, tgt, cur;
+    uint32_t now;
+
+    if (s_follow_en == 0u) return;
+    if (GM6020_IsOnline() == 0u) return;
+
+    now = HAL_GetTick();
+    if ((uint32_t)(now - s_follow_tick) < (uint32_t)VISION_GIMBAL_PERIOD_MS) return;
+    s_follow_tick = now;
+
+    /* 无新帧不推，避免停在旧误差上一直拧 */
+    if (s_frames == s_follow_last_frames) return;
+    s_follow_last_frames = s_frames;
+
+    if (Vision_GetOffset(&dx, &dy) == 0u) return;
+    (void)dy; /* 无同步带：垂直靠固定高度，只跟水平 */
+
+    if (Vision_IsArrived() != 0u) return;
+    if (dx < 0) { if ((int16_t)(-dx) <= (int16_t)VISION_ALIGN_DEAD_PX) return; }
+    else if (dx <= (int16_t)VISION_ALIGN_DEAD_PX) return;
+
+    step = (float)dx * (float)VISION_GIMBAL_KP_DEG_PER_PX * (float)VISION_GIMBAL_DIR;
+    if (step > (float)VISION_GIMBAL_MAX_STEP_DEG) step = (float)VISION_GIMBAL_MAX_STEP_DEG;
+    if (step < -(float)VISION_GIMBAL_MAX_STEP_DEG) step = -(float)VISION_GIMBAL_MAX_STEP_DEG;
+    if ((step > 0.0f) && (step < (float)VISION_GIMBAL_MIN_STEP_DEG))
+        step = (float)VISION_GIMBAL_MIN_STEP_DEG;
+    if ((step < 0.0f) && (step > -(float)VISION_GIMBAL_MIN_STEP_DEG))
+        step = -(float)VISION_GIMBAL_MIN_STEP_DEG;
+
+    cur = GM6020_GetCurrentDeg();
+    tgt = cur + step;
+    while (tgt < 0.0f) tgt += 360.0f;
+    while (tgt >= 360.0f) tgt -= 360.0f;
+
+#if VISION_GIMBAL_CLAMP_SAFE
+    if (tgt < (float)ROT_SAFE_MIN_DEG) tgt = (float)ROT_SAFE_MIN_DEG;
+    if (tgt > (float)ROT_SAFE_MAX_DEG) tgt = (float)ROT_SAFE_MAX_DEG;
+#endif
+
+    /* dir=0 最短路径；单步很小，绕线风险低 */
+    GM6020_SetTargetPosDegDir(tgt, 0);
+}
+#else
+void Vision_FollowSetEnable(uint8_t en) { (void)en; }
+uint8_t Vision_FollowIsEnable(void) { return 0u; }
+void Vision_FollowTask(void) {}
+#endif
+
 #else
 
 void     Vision_Init(void) {}
@@ -320,5 +388,8 @@ void     Vision_BeginStep(void) {}
 uint8_t  Vision_TakeTask(char *dst, uint8_t max) { (void)dst; (void)max; return 0u; }
 void     Vision_ClearTask(void) {}
 uint8_t  Vision_GetOffset(int16_t *dx, int16_t *dy) { (void)dx; (void)dy; return 0u; }
+void     Vision_FollowSetEnable(uint8_t en) { (void)en; }
+uint8_t  Vision_FollowIsEnable(void) { return 0u; }
+void     Vision_FollowTask(void) {}
 
 #endif
