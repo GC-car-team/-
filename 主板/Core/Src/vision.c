@@ -6,7 +6,7 @@
   */
 #include "vision.h"
 #include "usart.h"
-#include "gm6020.h"
+#include "chassis.h"
 
 #if VISION_ENABLE && defined(HAL_UART_MODULE_ENABLED)
 
@@ -18,6 +18,18 @@
 #endif
 #ifndef VISION_ALIGN_DEAD_PX
 #define VISION_ALIGN_DEAD_PX  8
+#endif
+#ifndef VISION_ARRIVE_DX_MIN
+#define VISION_ARRIVE_DX_MIN  (-60)
+#endif
+#ifndef VISION_ARRIVE_DX_MAX
+#define VISION_ARRIVE_DX_MAX  60
+#endif
+#ifndef VISION_ARRIVE_DY_MIN
+#define VISION_ARRIVE_DY_MIN  (-35)
+#endif
+#ifndef VISION_ARRIVE_DY_MAX
+#define VISION_ARRIVE_DY_MAX  90
 #endif
 
 static UART_HandleTypeDef *s_uart;
@@ -138,7 +150,13 @@ static void vision_feed(uint8_t b)
                 int16_t x = (int16_t)(((uint16_t)s_pay[0] << 8) | s_pay[1]);
                 int16_t y = (int16_t)(((uint16_t)s_pay[2] << 8) | s_pay[3]);
                 if (s_type == 0xB1u)
+                {
+                    /* 锁定视觉物料在 160×160 上报；圆环在 320×240。
+                       统一映到 320×240，否则中心按 (160,120) 算时点全落在左上象限。 */
+                    x = (int16_t)(x * 2);
+                    y = (int16_t)(y * 2);
                     vision_commit(VISION_KIND_MAT, x, y, s_pay[5]); /* color */
+                }
                 else
                     vision_commit(VISION_KIND_RING, x, y, s_pay[4]); /* digit */
             }
@@ -211,14 +229,14 @@ uint8_t Vision_GetKind(void)
 
 uint8_t Vision_IsArrived(void)
 {
-    int16_t ex, ey;
+    int16_t dx, dy;
     if (!s_has) return 0u;
-    ex = (int16_t)(s_x - (int16_t)VISION_CAM_CX);
-    ey = (int16_t)(s_y - (int16_t)VISION_CAM_CY);
-    if (ex < 0) ex = (int16_t)(-ex);
-    if (ey < 0) ey = (int16_t)(-ey);
-    return (uint8_t)((ex <= (int16_t)VISION_ALIGN_DEAD_PX) &&
-                     (ey <= (int16_t)VISION_ALIGN_DEAD_PX));
+    dx = (int16_t)(s_x - (int16_t)VISION_CAM_CX);
+    dy = (int16_t)(s_y - (int16_t)VISION_CAM_CY);
+    return (uint8_t)((dx >= (int16_t)VISION_ARRIVE_DX_MIN) &&
+                     (dx <= (int16_t)VISION_ARRIVE_DX_MAX) &&
+                     (dy >= (int16_t)VISION_ARRIVE_DY_MIN) &&
+                     (dy <= (int16_t)VISION_ARRIVE_DY_MAX));
 }
 
 uint8_t Vision_IsTimeout(void) { return 0u; }
@@ -301,15 +319,57 @@ uint8_t Vision_GetOffset(int16_t *dx, int16_t *dy)
     return 1u;
 }
 
-#if VISION_GIMBAL_FOLLOW
+#if VISION_CHASSIS_FOLLOW
+#ifndef VISION_FOLLOW_KX
+#define VISION_FOLLOW_KX  2.5f
+#endif
+#ifndef VISION_FOLLOW_KY
+#define VISION_FOLLOW_KY  2.5f
+#endif
+#ifndef VISION_FOLLOW_VMAX
+#define VISION_FOLLOW_VMAX  120.0f
+#endif
+#ifndef VISION_FOLLOW_VMIN
+#define VISION_FOLLOW_VMIN  60.0f
+#endif
+#ifndef VISION_FOLLOW_PERIOD_MS
+#define VISION_FOLLOW_PERIOD_MS  40u
+#endif
+#ifndef VISION_FOLLOW_DX_DIR
+#define VISION_FOLLOW_DX_DIR  (-1.0f)
+#endif
+#ifndef VISION_FOLLOW_DY_DIR
+#define VISION_FOLLOW_DY_DIR  (+1.0f)
+#endif
+
 static uint8_t  s_follow_en;
 static uint32_t s_follow_tick;
 static uint32_t s_follow_last_frames;
 
+static float vision_follow_axis(float v)
+{
+    float a;
+    if (v < 0.0f) a = -v; else a = v;
+    if (a < 1.0f) return 0.0f;
+    if (a < (float)VISION_FOLLOW_VMIN) a = (float)VISION_FOLLOW_VMIN;
+    if (a > (float)VISION_FOLLOW_VMAX) a = (float)VISION_FOLLOW_VMAX;
+    return (v < 0.0f) ? -a : a;
+}
+
 void Vision_FollowSetEnable(uint8_t en)
 {
-    s_follow_en = (en != 0u) ? 1u : 0u;
-    s_follow_last_frames = s_frames;
+    if (en != 0u)
+    {
+        s_follow_en = 1u;
+        s_follow_last_frames = s_frames;
+        /* 锁当前航向：只做 vx/vy，不扭头 */
+        Chassis_SetHeadingTargetDeg(Chassis_GetYawDeg());
+    }
+    else
+    {
+        s_follow_en = 0u;
+        Chassis_Stop();
+    }
 }
 
 uint8_t Vision_FollowIsEnable(void)
@@ -320,47 +380,47 @@ uint8_t Vision_FollowIsEnable(void)
 void Vision_FollowTask(void)
 {
     int16_t dx = 0, dy = 0;
-    float step, tgt, cur;
+    float vx, vy;
     uint32_t now;
 
     if (s_follow_en == 0u) return;
-    if (GM6020_IsOnline() == 0u) return;
 
     now = HAL_GetTick();
-    if ((uint32_t)(now - s_follow_tick) < (uint32_t)VISION_GIMBAL_PERIOD_MS) return;
+    if ((uint32_t)(now - s_follow_tick) < (uint32_t)VISION_FOLLOW_PERIOD_MS) return;
     s_follow_tick = now;
 
-    /* 无新帧不推，避免停在旧误差上一直拧 */
-    if (s_frames == s_follow_last_frames) return;
+    /* 无新帧：在线则保持上一拍速度；掉线立刻停 */
+    if (s_frames == s_follow_last_frames)
+    {
+        if (Vision_IsOnline() == 0u) Chassis_Stop();
+        return;
+    }
     s_follow_last_frames = s_frames;
 
-    if (Vision_GetOffset(&dx, &dy) == 0u) return;
-    (void)dy; /* 无同步带：垂直靠固定高度，只跟水平 */
+    if (Vision_GetOffset(&dx, &dy) == 0u)
+    {
+        Chassis_Stop();
+        return;
+    }
 
-    if (Vision_IsArrived() != 0u) return;
-    if (dx < 0) { if ((int16_t)(-dx) <= (int16_t)VISION_ALIGN_DEAD_PX) return; }
-    else if (dx <= (int16_t)VISION_ALIGN_DEAD_PX) return;
+    /* 死区 = 合爪到位窗 */
+    if (Vision_IsArrived() != 0u)
+    {
+        Chassis_Stop();
+        return;
+    }
 
-    step = (float)dx * (float)VISION_GIMBAL_KP_DEG_PER_PX * (float)VISION_GIMBAL_DIR;
-    if (step > (float)VISION_GIMBAL_MAX_STEP_DEG) step = (float)VISION_GIMBAL_MAX_STEP_DEG;
-    if (step < -(float)VISION_GIMBAL_MAX_STEP_DEG) step = -(float)VISION_GIMBAL_MAX_STEP_DEG;
-    if ((step > 0.0f) && (step < (float)VISION_GIMBAL_MIN_STEP_DEG))
-        step = (float)VISION_GIMBAL_MIN_STEP_DEG;
-    if ((step < 0.0f) && (step > -(float)VISION_GIMBAL_MIN_STEP_DEG))
-        step = -(float)VISION_GIMBAL_MIN_STEP_DEG;
+    /* dx→vy，dy→vx；DIR 已按现场：Y 相对原默认取反 */
+    vx = vision_follow_axis((float)dy * (float)VISION_FOLLOW_KY * (float)VISION_FOLLOW_DY_DIR);
+    vy = vision_follow_axis((float)dx * (float)VISION_FOLLOW_KX * (float)VISION_FOLLOW_DX_DIR);
 
-    cur = GM6020_GetCurrentDeg();
-    tgt = cur + step;
-    while (tgt < 0.0f) tgt += 360.0f;
-    while (tgt >= 360.0f) tgt -= 360.0f;
+    if ((vx == 0.0f) && (vy == 0.0f))
+    {
+        Chassis_Stop();
+        return;
+    }
 
-#if VISION_GIMBAL_CLAMP_SAFE
-    if (tgt < (float)ROT_SAFE_MIN_DEG) tgt = (float)ROT_SAFE_MIN_DEG;
-    if (tgt > (float)ROT_SAFE_MAX_DEG) tgt = (float)ROT_SAFE_MAX_DEG;
-#endif
-
-    /* dir=0 最短路径；单步很小，绕线风险低 */
-    GM6020_SetTargetPosDegDir(tgt, 0);
+    Chassis_SetVelocity(vx, vy, 0.0f);
 }
 #else
 void Vision_FollowSetEnable(uint8_t en) { (void)en; }

@@ -35,7 +35,8 @@
 #include "imu.h"
 #include "hmi.h"
 #include "vision.h"
-#include "route_run.h"   /* 比赛路线执行（按字母跑） */     /* MaixCam 视觉（UART7 = PE7/PE8） */
+#include "scan.h"        /* 扫码相机 UART8 = PE0/PE1 */
+#include "route_run.h"   /* 比赛路线执行（按字母跑） */
 #include "bt.h"          /* 蓝牙 HC-05（UART4 = PA0/PA1）*/
 #include "tune.h"        /* 调参命令通道（有线串口2 / 蓝牙）*/
 #include "servo.h"    /* 夹爪 = ZP 总线舵机 */
@@ -384,6 +385,7 @@ int main(void)
   MX_USART6_UART_Init();    /* ★IMU（YbImu）现在走 USART6 = PC6/PC7，必须在 IMU_Init() 之前 */
   MX_I2C1_Init();
   MX_UART7_Init();          /* ★视觉 MaixCam：PE8(TX)/PE7(RX)，115200 */
+  MX_UART8_Init();          /* ★扫码相机：PE1(TX)/PE0(RX)，115200 */
   /* USER CODE BEGIN 2 */
   /* ==================== 云台 GM6020 初始化 ==================== */
 #if defined(GIMBAL_IFACE_PWM)
@@ -420,6 +422,7 @@ int main(void)
   /* ==================== 陀螺仪（外接，没接就是空实现） ==================== */
   Vision_Init();            /* ★视觉串口解析器（UART7）
                              必须在 MX_UART7_Init 之后 */
+  Scan_Init();              /* ★扫码串口解析器（UART8） */
   IMU_Init();
 
   /* ==================== 底盘（麦轮 4 轮运动学） ==================== */
@@ -828,9 +831,13 @@ int main(void)
     SERVO_Task();
 #endif
 
-#if VISION_ENABLE && VISION_GIMBAL_FOLLOW
-    /* B 联调：视觉水平误差 → GM6020；夹爪仍手动 O/C 或 va */
+#if VISION_ENABLE && VISION_CHASSIS_FOLLOW
+    /* 联调：视觉 dx/dy → 底盘 vx/vy 微调；死区=合爪到位窗 */
     Vision_FollowTask();
+#endif
+
+#if SCAN_ENABLE
+    Scan_Task();            /* ACK + 主动推 CODE */
 #endif
 
     /* CAN 引脚软件示波器：高频采样 PA12/PA11，统计低电平占比（ch12/ch13） */

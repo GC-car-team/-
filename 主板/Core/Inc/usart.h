@@ -42,6 +42,7 @@ extern UART_HandleTypeDef huart4;   /* PA0/PA1 = 蓝牙 HC-05 */
 
 extern UART_HandleTypeDef huart6;
 extern UART_HandleTypeDef huart7;   /* PE8(TX)/PE7(RX) = MaixCam 视觉 */
+extern UART_HandleTypeDef huart8;   /* PE1(TX)/PE0(RX) = 扫码相机 */
 
 /* USER CODE BEGIN Private defines */
 
@@ -53,6 +54,7 @@ void MX_USART3_UART_Init(void);
 void MX_UART4_Init(void);
 void MX_USART6_UART_Init(void);
 void MX_UART7_Init(void);
+void MX_UART8_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 

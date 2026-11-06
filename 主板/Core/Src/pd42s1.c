@@ -17,6 +17,7 @@
 
 #include "pd42s1.h"
 #include "vision.h"    /* MaixCam 视觉帧（UART7）分派 */
+#include "scan.h"      /* 扫码相机（UART8）分派 */
 #include "hmi.h"
 #include "imu.h"        /* IMU（YbImu）走 UART4 时，接收回调转发给 IMU_RxIsr() */
 #include "arm.h"        /* VOFA 拖条：串口2 收到的字节转发给 ARM_VofaRxIsr() */
@@ -431,10 +432,17 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     }
 #endif
 #if VISION_ENABLE
-    /* MaixCam（UART7 = PE8/PE7）：AA 55 偏差帧 */
+    /* MaixCam（UART7 = PE8/PE7）：B3 视觉帧 */
     else if (huart->Instance == VISION_UART_INSTANCE)
     {
         Vision_RxIsr(huart);
+    }
+#endif
+#if SCAN_ENABLE
+    /* 扫码相机（UART8 = PE1/PE0）：$任务码# */
+    else if (huart->Instance == SCAN_UART_INSTANCE)
+    {
+        Scan_RxIsr(huart);
     }
 #endif
 }

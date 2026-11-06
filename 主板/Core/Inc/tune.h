@@ -54,6 +54,9 @@ void TUNE_FeedByte(char b);
 /* 主循环里调：解析命令 + 推进动作状态机 + 到点发遥测 */
 void TUNE_Task(void);
 
+/* 主动推一行 ASCII（如扫码 CODE,...）；TUNE 未开时为空操作 */
+void TUNE_SendLine(const char *s);
+
 /* 状态查询（给 VOFA/诊断用） */
 uint8_t TUNE_IsBusy(void);       /* 1 = 正在跑一条动作 */
 float   TUNE_GetYawDeg(void);    /* 当前航向（= 底盘航向） */

@@ -31,6 +31,8 @@
  *   云台 PWM  PE9  = TIM1_CH1                     —— GM6020 舵机模式
  *   串口2     PA2(TX) PA3(RX)  = USART2          —— VOFA+ 上位机看波形
  *   步进口T/R PB10(TX) PB11(RX)= USART3          —— 7 路步进口共用这条总线
+ *   视觉      PE8(TX) PE7(RX)  = UART7           —— MaixCam 物料/圆环 115200
+ *   扫码      PE1(TX) PE0(RX)  = UART8           —— 扫码相机 115200
  *   舵机      PC8 PC9 PE5 PE6 PB14 PB15          —— 6 路硬件 PWM
  */
 
@@ -972,13 +974,13 @@
 #define SERVO_ENABLE                1
 #define BUS_SERVO_UART              (&huart2)
 #define BUS_SERVO_ID                0
-#define BUS_SERVO_OPEN_P            2000     /* ★张开 P，实测后改 */
-#define BUS_SERVO_CLOSE_P           600      /* ★合紧 P，实测后改 */
+#define BUS_SERVO_OPEN_P            2480     /* ★张开 P（2026-11-06 网页定标） */
+#define BUS_SERVO_CLOSE_P           1950     /* ★合紧 P（2026-11-05 网页定标） */
 #define BUS_SERVO_INVERT            0
 #define BUS_SERVO_MOVE_MS           1000
 #define BUS_SERVO_SETTLE_EXTRA_MS   200
 #define BUS_SERVO_P_MIN             500
-#define BUS_SERVO_P_MAX             2500
+#define BUS_SERVO_P_MAX             4000     /* 联调放宽；ZP 常见标称 500~2500，以舵机实收为准 */
 
 /* ==========================================================================
  * ⑱ ★GM6020 旋转轴定标值（2026-10-21 实测，配合绕线保护）
@@ -1003,7 +1005,8 @@
  *
  *   收：B3 B3 B1/B2 … 5B（物料/圆环）
  *   发：FF cmd FE — 01 全色 / 02 圆环 / 03~08 单色
- *   到位：主板自判 |x-cx|,|y-cy| < VISION_ALIGN_DEAD_PX
+ *   到位：主板自判 dx∈[DX_MIN,DX_MAX] 且 dy∈[DY_MIN,DY_MAX]
+ *         （相对相机中心 VISION_CAM_CX/CY；夹爪用此窗，不是上位机准星）
  * ========================================================================== */
 #define VISION_ENABLE               1
 #define VISION_UART                 (&huart7)
@@ -1012,29 +1015,36 @@
 #define VISION_OFFLINE_MS           300
 #define VISION_CAM_CX               160
 #define VISION_CAM_CY               120
-#define VISION_ALIGN_DEAD_PX        8
+#define VISION_ALIGN_DEAD_PX        8           /* 云台跟瞄停转死区（对称）；夹爪到位见下 */
+#define VISION_ARRIVE_DX_MIN      (-60)         /* 物料到位窗：dx = x-cx */
+#define VISION_ARRIVE_DX_MAX        60
+#define VISION_ARRIVE_DY_MIN      (-35)         /* dy = y-cy：上负下正 */
+#define VISION_ARRIVE_DY_MAX        90
 
 /* 1 = 把视觉译码结果显示/打印出来（联调用）；比赛跑流程时可关 */
 #define VISION_LINK_TEST            1
 
-/* ---- 车跟画面（暂时关）---- */
-#define VISION_CHASSIS_FOLLOW       0
-#define VISION_FOLLOW_SPEED         200.0f
-#define VISION_FOLLOW_MIN_SPEED     120.0f
-#define VISION_FOLLOW_DEAD_PX       1
-#define VISION_FOLLOW_FULL_PX       40
+/* ---- 底盘微调跟画面（vf1/0；死区 = 合爪到位窗 ARRIVE_*）----
+   C：P 控制 + 最小速度；进窗停车。云台跟已停用。
+   轴：dx→vy，dy→vx；符号跟反了只改 DX_DIR / DY_DIR。 */
+#define VISION_CHASSIS_FOLLOW       1
+#define VISION_FOLLOW_KX            2.5f    /* vy = DIR * KX * dx（mm/s / px） */
+#define VISION_FOLLOW_KY            2.5f    /* vx = DIR * KY * dy */
+#define VISION_FOLLOW_VMAX          120.0f  /* 单轴速度上限 mm/s（联调宜小） */
+#define VISION_FOLLOW_VMIN           60.0f  /* 单轴最小速度（出窗才给） */
+#define VISION_FOLLOW_PERIOD_MS      40u
+#define VISION_FOLLOW_DX_DIR       -1.0f    /* dx>0（偏右）→ vy 符号 */
+#define VISION_FOLLOW_DY_DIR       +1.0f    /* dy>0（偏下）→ vx 符号；相对原默认已取反 */
 
-/* ---- 云台跟画面（B 联调：无同步带时只跟水平 dx）----
-   1 = main 循环跑 Vision_FollowTask：用过滤后的视觉 dx 推 GM6020。
-   夹爪不自动：到位后蓝牙发 va 或 C。符号反了只改 DIR。 */
-#define VISION_GIMBAL_FOLLOW        1
-#define VISION_GIMBAL_DIR          -1.0f    /* dx>0 时云台步进符号；跟反了改成 +1.0f */
-#define VISION_GIMBAL_KP_DEG_PER_PX 0.12f   /* 每像素约多少度 */
-#define VISION_GIMBAL_MAX_STEP_DEG  3.0f    /* 单步上限（联调宜小，防甩） */
-#define VISION_GIMBAL_MIN_STEP_DEG  0.3f    /* 单步下限（小于死区不转） */
-#define VISION_GIMBAL_PERIOD_MS     40u     /* 跟瞄周期 */
-#define VISION_GIMBAL_CLAMP_SAFE    1       /* 1 = 限制在 ROT_SAFE_MIN/MAX */
-#define VISION_GIMBAL_CLOSE_SCALE   0.4f    /* 保留：旧粗跟瞄比例（未再用） */
+/* ---- 云台跟画面（已停用，改底盘微调；宏保留防旧工程引用）---- */
+#define VISION_GIMBAL_FOLLOW        0
+#define VISION_GIMBAL_DIR          -1.0f
+#define VISION_GIMBAL_KP_DEG_PER_PX 0.12f
+#define VISION_GIMBAL_MAX_STEP_DEG  3.0f
+#define VISION_GIMBAL_MIN_STEP_DEG  0.3f
+#define VISION_GIMBAL_PERIOD_MS     40u
+#define VISION_GIMBAL_CLAMP_SAFE    1
+#define VISION_GIMBAL_CLOSE_SCALE   0.4f
 #define VISION_GIMBAL_TRAVEL_DEG    120.0f
 /* ==========================================================================
  * ⑳ ★比赛路线执行（来自视觉屏幕修正版）
@@ -1075,6 +1085,13 @@
 
 #define ARM_SCREW_PULSE_PER_MM  (PULSE_PER_REV / ARM_SCREW_LEAD_MM)
 #define ARM_RACK_PULSE_PER_MM   (PULSE_PER_REV / ARM_RACK_LEAD_MM)
+
+/* 升降方向与软限位（相对 VPOS；先把机构降到最低 → N1 置零，再量总行程改 MAX）
+   DIR：网页「↑」发 +mm；跟机械反了改成 -1 */
+#define ARM_LIFT_DIR           (-1.0f)
+#define ARM_LIFT_SOFT_LIMIT     1
+#define ARM_LIFT_MM_MIN         0.0f        /* 置零后的下限（通常 0=最低） */
+#define ARM_LIFT_MM_MAX       150.0f        /* ★总行程 mm 占位：按实测改 */
 /* ==========================================================================
  * ㉒ ★工位动作表（升降 S / 6020 T / 夹爪 G / 视觉 V）—— 无伸缩 R
  *      {'S', mm}   升降：正=升，负=降
@@ -1095,7 +1112,18 @@
                           {'V', 0.0f}, {'S', -15.0f}, {'G', 1.0f}, \
                           {'S', 15.0f} }
 
-/* ---- 扫码（C）：只等相机回任务码，不动机构 ---- */
+/* ==========================================================================
+ * 扫码相机（UART8，与物料视觉 UART7 分离）
+ *   收：$156+123+516+231#   回：$ACK#
+ *   查询：vs（不消费）→ CODE,<task> 或 CODE,NONE；vs0 清持有
+ *   收码后经 TUNE 主动推 CODE,...
+ * ========================================================================== */
+#define SCAN_ENABLE                 1
+#define SCAN_UART                   (&huart8)
+#define SCAN_UART_INSTANCE          UART8
+#define SCAN_BAUD                   115200u
+
+/* ---- 扫码工位（C）：只等 UART8 任务码，不动机构 ---- */
 #define ST_SCAN_STEPS   { {'W', 300.0f} }
 
 /* 每步余量：动作发完后额外等这么久才算稳（ms） */

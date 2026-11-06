@@ -31,7 +31,8 @@ UART_HandleTypeDef huart4;      /* 鈽匲ART4 = PA0(TX)/PA1(RX) 鈥斺€?HC-05 
                                    锛堝師鏉ユ槸鑰?IMU 鐨?PC10/PC11锛孖MU 鎼埌 USART6 鍚庤繖璺氨绌哄嚭鏉ヤ簡锛?
                                      鏉夸笂涓插彛4 鎺掗拡鑻ョ‘瀹炴槸 PA0/PA1 灏辩洿鎺ユ彃锛屾敼鍥炴潵鍙渶鏀硅繖涓よ剼 + config.h锛?*/
 UART_HandleTypeDef huart6;
-UART_HandleTypeDef huart7;       /* PE8(TX)/PE7(RX) = MaixCam 视觉，115200 */      /* 鈽匲SART6 = PC6(TX)/PC7(RX) 鈥斺€?IMU 鐜板湪璧拌繖涓€璺?*/
+UART_HandleTypeDef huart7;       /* PE8(TX)/PE7(RX) = MaixCam 视觉，115200 */
+UART_HandleTypeDef huart8;       /* PE1(TX)/PE0(RX) = 扫码相机，115200 */
 
 /* UART5 init function */
 void MX_UART5_Init(void)
@@ -161,6 +162,23 @@ void MX_UART7_Init(void)
   huart7.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart7.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(&huart7) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/* UART8 init —— 扫码相机：PE1(TX) / PE0(RX)，115200 8N1 */
+void MX_UART8_Init(void)
+{
+  huart8.Instance = UART8;
+  huart8.Init.BaudRate = 115200;
+  huart8.Init.WordLength = UART_WORDLENGTH_8B;
+  huart8.Init.StopBits = UART_STOPBITS_1;
+  huart8.Init.Parity = UART_PARITY_NONE;
+  huart8.Init.Mode = UART_MODE_TX_RX;
+  huart8.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart8.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart8) != HAL_OK)
   {
     Error_Handler();
   }
@@ -301,7 +319,23 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
 
     HAL_NVIC_SetPriority(UART7_IRQn, 2, 0);
     HAL_NVIC_EnableIRQ(UART7_IRQn);
-  }  else if(uartHandle->Instance==USART2)
+  }
+  else if(uartHandle->Instance==UART8)
+  {
+    /* 扫码串口：PE1 = UART8_TX，PE0 = UART8_RX（AF8） */
+    __HAL_RCC_UART8_CLK_ENABLE();
+    __HAL_RCC_GPIOE_CLK_ENABLE();
+    GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_0;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF8_UART8;
+    HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+    HAL_NVIC_SetPriority(UART8_IRQn, 2, 0);
+    HAL_NVIC_EnableIRQ(UART8_IRQn);
+  }
+  else if(uartHandle->Instance==USART2)
   {
   /* USER CODE BEGIN USART2_MspInit 0 */
 

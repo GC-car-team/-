@@ -39,7 +39,7 @@ void     Vision_ClearExpect(void);
 /* 最近一帧（已通过 expect 过滤）。尚无合法帧返回 0 */
 uint8_t  Vision_GetTarget(int16_t *x, int16_t *y, uint8_t *id);
 uint8_t  Vision_GetKind(void);           /* VISION_KIND_* */
-uint8_t  Vision_IsArrived(void);         /* |x-cx|,|y-cy| < VISION_ALIGN_DEAD_PX */
+uint8_t  Vision_IsArrived(void);         /* dx∈[DX_MIN,DX_MAX] 且 dy∈[DY_MIN,DY_MAX] */
 uint8_t  Vision_IsTimeout(void);         /* 本步保留：当前契约无超时事件帧，恒 0 */
 uint8_t  Vision_IsOnline(void);
 uint32_t Vision_FrameCount(void);
@@ -56,9 +56,9 @@ void     Vision_ClearTask(void);
 /* 兼容旧调用：dx=x-cx, dy=y-cy（未过滤的最近目标；无帧返回 0） */
 uint8_t  Vision_GetOffset(int16_t *dx, int16_t *dy);
 
-/* ---- 云台半自动跟瞄（config VISION_GIMBAL_FOLLOW）---- */
-void     Vision_FollowSetEnable(uint8_t en);   /* 1=跟水平误差；0=停 */
+/* ---- 底盘微调跟瞄（config VISION_CHASSIS_FOLLOW；死区=到位窗）---- */
+void     Vision_FollowSetEnable(uint8_t en);   /* 1=底盘按 dx/dy 微调；0=停 */
 uint8_t  Vision_FollowIsEnable(void);
-void     Vision_FollowTask(void);              /* 主循环调用；无升降只调 yaw */
+void     Vision_FollowTask(void);              /* 主循环：P+Vmin，进到位窗停车 */
 
 #endif /* __VISION_H__ */

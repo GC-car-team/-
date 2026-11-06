@@ -15,7 +15,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 app = FastAPI(title="bt-car-bench")
-APP_VER = "2026-11-04-bt3"
+APP_VER = "2026-11-06-bt11"
 
 LOG = deque(maxlen=80)
 _lock = threading.Lock()
@@ -30,8 +30,10 @@ vision_thread: Optional[threading.Thread] = None
 vision_stop = threading.Event()
 vision_mode = "none"
 
-OPEN_P = 2000
-CLOSE_P = 600
+OPEN_P = 2480
+CLOSE_P = 1950
+P_MIN = 500
+P_MAX = 4000
 
 state = {
     "bt": False,
@@ -50,16 +52,71 @@ state = {
     "last_tx": "",
     "last_rx": "",
     "heartbeat": time.time(),
+    "scan": {"code": "", "ok": False, "t": 0.0},
+    "arm": {"pos": None, "vpos_mm": None, "online": None, "t": 0.0},
 }
 
 coop_thread: Optional[threading.Thread] = None
 coop_stop = threading.Event()
 
 
+def _parse_scan_line(line: str) -> None:
+    """解析 CODE,<task> / CODE,NONE。"""
+    raw = line.replace("\x00", "")
+    idx = raw.find("CODE,")
+    if idx < 0:
+        return
+    payload = raw[idx + 5 :].strip()
+    if "," in payload:
+        payload = payload.split(",", 1)[0].strip()
+    if (not payload) or payload.upper() == "NONE":
+        state["scan"] = {"code": "", "ok": False, "t": time.time()}
+        return
+    code = payload[:15]
+    ok = (
+        len(code) == 15
+        and code[3] == "+"
+        and code[7] == "+"
+        and code[11] == "+"
+    )
+    state["scan"] = {"code": code, "ok": ok, "t": time.time()}
+
+
+def _parse_arm_line(line: str) -> None:
+    """解析 POS,1,... / VPOS,1,<pls>,<mm>mm。"""
+    raw = line.replace("\x00", "")
+    arm = state.get("arm") or {}
+    if raw.startswith("POS,1,"):
+        parts = raw.split(",")
+        try:
+            arm = {
+                **arm,
+                "pos": int(parts[2]),
+                "online": int(parts[5]) if len(parts) > 5 else arm.get("online"),
+                "t": time.time(),
+            }
+        except (ValueError, IndexError):
+            return
+        state["arm"] = arm
+    elif raw.startswith("VPOS,1,"):
+        parts = raw.split(",")
+        try:
+            mm_tok = parts[3] if len(parts) > 3 else ""
+            mm = float(mm_tok.replace("mm", "").strip())
+            arm = {**arm, "vpos_mm": mm, "t": time.time()}
+        except (ValueError, IndexError):
+            return
+        state["arm"] = arm
+
+
 def _parse_mcu_vis(line: str) -> None:
     """解析 VIS,on=...arr=...dx=... 填入 state['mcu_vis']。"""
-    if not line.startswith("VIS,"):
+    # 蓝牙上若混入 JustFloat 二进制，行首可能不是 VIS，要从中间切开
+    raw = line.replace("\x00", "")
+    idx = raw.find("VIS,")
+    if idx < 0:
         return
+    line = raw[idx:]
     parts = {}
     for tok in line.split(","):
         if "=" in tok:
@@ -76,9 +133,25 @@ def _parse_mcu_vis(line: str) -> None:
             "dx": int(parts.get("dx", "0")),
             "dy": int(parts.get("dy", "0")),
             "t": time.time(),
+            "held": 0,
         }
     except ValueError:
         return
+    # 无有效目标时 MCU 仍回 dx=0,dy=0：若用它刷新准星会「钉死在中心」或乱跳。
+    # 保留上一拍有效偏差，仅更新 on/frames 等状态。
+    prev = state.get("mcu_vis")
+    if (
+        info["on"] == 0
+        and info["dx"] == 0
+        and info["dy"] == 0
+        and isinstance(prev, dict)
+        and (prev.get("dx", 0) != 0 or prev.get("dy", 0) != 0 or prev.get("on") == 1)
+    ):
+        info["dx"] = int(prev.get("dx", 0))
+        info["dy"] = int(prev.get("dy", 0))
+        info["held"] = 1
+        if prev.get("kind"):
+            info["kind"] = int(prev.get("kind") or info["kind"])
     state["mcu_vis"] = info
     # 配合测试：到位且开启自动合爪 → 只合一次
     coop = state["coop"]
@@ -91,24 +164,56 @@ def _parse_mcu_vis(line: str) -> None:
         and bt_ser.is_open
     ):
         try:
-            bt_send("va")
+            # 勿在蓝牙收包线程里 sleep/发一长串，改丢给后台，避免整页卡死
             coop["closed"] = True
-            log("COOP auto va (arr=1)")
+            threading.Thread(
+                target=_coop_auto_close_worker, daemon=True, name="coop-close"
+            ).start()
         except Exception as e:
-            log(f"COOP auto va fail {e}")
+            log(f"COOP auto close fail {e}")
+
+
+def _coop_auto_close_worker() -> None:
+    try:
+        servo_close()
+        log(f"COOP auto close U{CLOSE_P} (arr=1)")
+    except Exception as e:
+        log(f"COOP auto close worker fail {e}")
+
+
+def _coop_start_worker(cmd: int, kind: int, id_: int, follow: bool) -> None:
+    """配合启动序列放后台：避免 /api/coop/start 同步 sleep 把网页卡住。"""
+    try:
+        bt_send("M0")
+        time.sleep(0.08)
+        servo_open()
+        time.sleep(0.25)
+        if not state["coop"].get("on"):
+            return
+        bt_send(f"vc{int(cmd):02X}")
+        time.sleep(0.12)
+        bt_send(f"ve{int(kind)},{int(id_)}")
+        time.sleep(0.12)
+        bt_send("vf1" if follow else "vf0")
+        log(
+            f"COOP ready open={OPEN_P} cmd={cmd:02X} ve={kind},{id_} follow={int(follow)}"
+        )
+    except Exception as e:
+        log(f"COOP start worker fail {e}")
+        state["coop"]["on"] = False
 
 
 def coop_loop() -> None:
-    """配合测试时周期性问主板 v。"""
+    """配合测试时周期性问主板 v（约 2Hz，减轻 9600 阻塞）。"""
     while not coop_stop.is_set():
         if state["coop"].get("on") and bt_ser is not None and bt_ser.is_open:
             try:
                 bt_send("v", quiet=True)
             except Exception:
                 pass
-            time.sleep(0.55)
+            time.sleep(0.45)
         else:
-            time.sleep(0.15)
+            time.sleep(0.2)
 
 
 def _ensure_coop_thread() -> None:
@@ -149,13 +254,21 @@ def bt_loop() -> None:
                         i = i_n
                     else:
                         i = min(i_n, i_r)
-                    line = bytes(buf[:i]).decode("utf-8", errors="replace").strip()
+                    raw = bytes(buf[:i])
                     del buf[: i + 1]
+                    # 去掉 JustFloat/噪声里的空字节，避免 VIS 行无法 startswith
+                    raw = raw.replace(b"\x00", b"")
+                    line = raw.decode("utf-8", errors="replace").strip()
                     if not line:
                         continue
-                    state["last_rx"] = line
-                    log("RX " + line)
+                    # 日志里只保留可打印段，避免刷屏
+                    vis_i = line.find("VIS,")
+                    show = line[vis_i:] if vis_i >= 0 else line[:80]
+                    state["last_rx"] = show
+                    log("RX " + show)
                     _parse_mcu_vis(line)
+                    _parse_scan_line(line)
+                    _parse_arm_line(line)
                     if line.startswith("OK,va") or line.startswith("WAIT,va"):
                         if line.startswith("OK,va"):
                             state["coop"]["closed"] = True
@@ -183,6 +296,29 @@ def bt_send(line: str, quiet: bool = False) -> None:
     state["last_tx"] = text
     if not quiet:
         log("TX " + text)
+
+
+def servo_sync_mcu(quiet: bool = False) -> None:
+    """把网页开合 P 写入 MCU 运行时（Sp），避免只靠未烧录的 config 默认值。"""
+    bt_send(f"Sp{OPEN_P},{CLOSE_P}", quiet=quiet)
+
+
+def servo_goto(pos: int, quiet: bool = False) -> None:
+    p = max(P_MIN, min(P_MAX, int(pos)))
+    bt_send(f"U{p}", quiet=quiet)
+
+
+def servo_open(quiet: bool = False) -> None:
+    """张开：先 Sp 再 U到张开角（不单发 O，避免旧固件仍用 2000/夹到 2500）。"""
+    servo_sync_mcu(quiet=True)
+    time.sleep(0.08)
+    servo_goto(OPEN_P, quiet=quiet)
+
+
+def servo_close(quiet: bool = False) -> None:
+    servo_sync_mcu(quiet=True)
+    time.sleep(0.08)
+    servo_goto(CLOSE_P, quiet=quiet)
 
 
 # ---------- 视觉 WiFi（监视用）----------
@@ -332,7 +468,7 @@ class TurnBody(BaseModel):
 
 
 class PosBody(BaseModel):
-    pos: int = Field(1500, ge=500, le=2500)
+    pos: int = Field(1500, ge=500, le=4000)
 
 
 class VisionCmdBody(BaseModel):
@@ -343,6 +479,7 @@ class VisionCmdBody(BaseModel):
 class CalibBody(BaseModel):
     open_p: Optional[int] = None
     close_p: Optional[int] = None
+    apply_mcu: bool = True  # True → 发 Sp 写入主板运行时开合 P
 
 
 class ExpectBody(BaseModel):
@@ -526,7 +663,7 @@ class CoopBody(BaseModel):
 
 @app.post("/api/coop/start")
 def coop_start(body: CoopBody):
-    """张开 → 切视觉模式 → 过滤 → 跟瞄 → 轮询 v。"""
+    """立即返回；M0→张开→vc/ve/vf 在后台线程执行，避免网页按钮卡住约 1s+。"""
     if bt_ser is None or not bt_ser.is_open:
         raise HTTPException(400, "请先连接蓝牙")
     _ensure_coop_thread()
@@ -538,22 +675,18 @@ def coop_start(body: CoopBody):
         "kind": int(body.kind),
         "id": int(body.id),
     }
-    state["mcu_vis"] = None
-    bt_send("O")
-    time.sleep(0.05)
-    bt_send(f"vc{int(body.cmd):02X}")
-    time.sleep(0.05)
-    bt_send(f"ve{int(body.kind)},{int(body.id)}")
-    time.sleep(0.05)
-    if body.follow:
-        bt_send("vf1")
-    else:
-        bt_send("vf0")
+    # 不要清空 mcu_vis：否则点开始后准星会先消失，直到下一帧 VIS
     log(
-        f"COOP start cmd={body.cmd:02X} ve={body.kind},{body.id} "
+        f"COOP queued open={OPEN_P} cmd={body.cmd:02X} ve={body.kind},{body.id} "
         f"follow={int(body.follow)} auto_close={int(body.auto_close)}"
     )
-    return {"ok": True, "coop": state["coop"]}
+    threading.Thread(
+        target=_coop_start_worker,
+        args=(int(body.cmd), int(body.kind), int(body.id), bool(body.follow)),
+        daemon=True,
+        name="coop-start",
+    ).start()
+    return {"ok": True, "coop": state["coop"], "open_p": OPEN_P, "close_p": CLOSE_P}
 
 
 @app.post("/api/coop/stop")
@@ -602,27 +735,28 @@ def chassis_zero():
 
 @app.post("/api/open")
 def api_open():
-    bt_send("O")
-    return {"ok": True, "pos": OPEN_P}
+    servo_open()
+    return {"ok": True, "pos": OPEN_P, "via": f"Sp+U{OPEN_P}"}
 
 
 @app.post("/api/close")
 def api_close():
-    bt_send("C")
-    return {"ok": True, "pos": CLOSE_P}
+    servo_close()
+    return {"ok": True, "pos": CLOSE_P, "via": f"Sp+U{CLOSE_P}"}
 
 
 @app.post("/api/goto")
 def api_goto(body: PosBody):
-    bt_send(f"U{int(body.pos)}")
-    return {"ok": True, "pos": body.pos}
+    p = max(P_MIN, min(P_MAX, int(body.pos)))
+    servo_goto(p)
+    return {"ok": True, "pos": p}
 
 
 @app.post("/api/arrive_close")
 def arrive_close():
-    """到位合爪（主板 va）。"""
-    bt_send("va")
-    return {"ok": True}
+    """到位合爪：网页标定合紧角 U（不单靠 va）。"""
+    servo_close()
+    return {"ok": True, "pos": CLOSE_P}
 
 
 @app.post("/api/follow")
@@ -658,13 +792,20 @@ def vision_cmd(body: VisionCmdBody):
 
 @app.post("/api/calib")
 def calib(body: CalibBody):
+    """记住开合 P；默认发 Sp 写入 MCU 运行时（O/C/va 立即生效，掉电丢失）。"""
     global OPEN_P, CLOSE_P
     if body.open_p is not None:
-        OPEN_P = max(500, min(2500, int(body.open_p)))
+        OPEN_P = max(P_MIN, min(P_MAX, int(body.open_p)))
     if body.close_p is not None:
-        CLOSE_P = max(500, min(2500, int(body.close_p)))
-    log(f"CALIB open={OPEN_P} close={CLOSE_P}（网页记忆；写入主板用 U/配置）")
-    return {"ok": True, "open_p": OPEN_P, "close_p": CLOSE_P}
+        CLOSE_P = max(P_MIN, min(P_MAX, int(body.close_p)))
+    applied = False
+    if body.apply_mcu:
+        bt_send(f"Sp{OPEN_P},{CLOSE_P}")
+        applied = True
+        log(f"CALIB Sp{OPEN_P},{CLOSE_P} → MCU runtime")
+    else:
+        log(f"CALIB open={OPEN_P} close={CLOSE_P}（仅网页记忆）")
+    return {"ok": True, "open_p": OPEN_P, "close_p": CLOSE_P, "mcu": applied}
 
 
 @app.get("/api/status")
@@ -687,9 +828,67 @@ def status():
             "last_rx": state["last_rx"],
             "open_p": OPEN_P,
             "close_p": CLOSE_P,
+            "scan": state.get("scan"),
+            "arm": state.get("arm"),
             "log": logs,
         }
     )
+
+
+class ArmJogBody(BaseModel):
+    mm: float = 5.0
+
+
+class ArmRpmBody(BaseModel):
+    rpm: float = 120.0
+
+
+@app.post("/api/arm/jog")
+def arm_jog(body: ArmJogBody):
+    """同步带轴①相对移动 mm：I1 <mm>。"""
+    mm = float(body.mm)
+    if abs(mm) < 0.01:
+        raise HTTPException(400, "mm 太小")
+    bt_send(f"I1 {mm:.2f}")
+    return {"ok": True, "mm": mm}
+
+
+@app.post("/api/arm/zero")
+def arm_zero():
+    bt_send("N1")
+    return {"ok": True}
+
+
+@app.post("/api/arm/read")
+def arm_read():
+    bt_send("L")
+    return {"ok": True}
+
+
+@app.post("/api/arm/enable")
+def arm_enable(on: int = 1):
+    bt_send(f"E1 {1 if on else 0}")
+    return {"ok": True, "en": bool(on)}
+
+
+@app.post("/api/arm/rpm")
+def arm_rpm(body: ArmRpmBody):
+    bt_send(f"V1 {float(body.rpm):.0f}")
+    return {"ok": True, "rpm": float(body.rpm)}
+
+
+@app.post("/api/scan/query")
+def scan_query():
+    """vs：不消费查询主板持有任务码。"""
+    bt_send("vs")
+    return {"ok": True}
+
+
+@app.post("/api/scan/clear")
+def scan_clear():
+    bt_send("vs0")
+    state["scan"] = {"code": "", "ok": False, "t": time.time()}
+    return {"ok": True}
 
 
 if __name__ == "__main__":

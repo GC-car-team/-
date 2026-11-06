@@ -20,6 +20,7 @@
 #include "servo.h"
 #include "arm.h"      /* 升降/齿条：ARM_Jog + 导程/脉冲换算 */
 #include "vision.h"
+#include "scan.h"
 #include "imu.h"
 #include <math.h>
 
@@ -377,7 +378,8 @@ static uint8_t route_station(uint8_t act, uint32_t now)
     {
         char code[16];
 
-        if (Vision_TakeTask(code, (uint8_t)sizeof(code)) != 0u)
+        /* 任务码来自扫码相机 UART8（Scan_*），不再走视觉 UART7 */
+        if (Scan_CopyCode(code, (uint8_t)sizeof(code)) != 0u)
         {
             uint8_t ti;
             for (ti = 0u; (ti < 15u) && (code[ti] != '\0'); ti++) s_task[ti] = code[ti];

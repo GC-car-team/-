@@ -18,7 +18,8 @@
 #include "usart.h"    /* huart4（UART4 = PC10/PC11）—— 串口接法要用 */
 #include "arm.h"      /* 串口出错恢复时要用 ARM_RearmRx()（蓝牙/VOFA 主口） */
 #include "pd42s1.h"
-#include "vision.h"   /* 串口出错恢复时也要通知视觉解析器 */   /* 串口出错恢复时要用 PD42S1_RearmRx()（步进总线） */
+#include "vision.h"   /* 串口出错恢复时也要通知视觉解析器 */
+#include "scan.h"     /* 扫码 UART8 出错重挂 */
 #if !IMU_IF_UART
 #include "i2c.h"      /* hi2c1 在 CubeMX 生成的 i2c.h 里（I2C1 必须已在 CubeMX 里打开） */
 #endif
@@ -281,6 +282,9 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 
     /* ③ 视觉（UART7）：解析器要复位状态并重挂接收 */
     Vision_OnUartError(huart);
+#if SCAN_ENABLE
+    Scan_OnUartError(huart);
+#endif
 
     /* ④ 步进总线（USART3）：接收归 PD42S1 */
 #if STEPPER_ENABLE

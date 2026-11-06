@@ -192,8 +192,8 @@ R1 + §2.0：主板必须丢弃 `digit≠N` 的 `B2`；原料区必须丢弃 `co
 
 ### 7.1 车上半自动联调（B，无同步带）
 
-- `VISION_GIMBAL_FOLLOW=1`：水平 `dx` → GM6020；竖直靠固定高度  
-- 相机 **UART7**；舵机 **USART2**；夹爪不自动，到位发 `va` 或 `C`  
+- `VISION_CHASSIS_FOLLOW=1`：`dx→vy`、`dy→vx` 底盘 P+Vmin 微调；死区=合爪到位窗；`VISION_GIMBAL_FOLLOW=0`  
+- 相机 **UART7**；舵机 **USART2**；到位窗内可 `va`/自动合爪  
 - 蓝牙命令：`vc02`/`vc03…`、`ve1,色`/`ve2,环`、`vf1`/`vf0`、`v`、`O`/`C`/`Y`  
 - 跟反了改 `VISION_GIMBAL_DIR`
 

@@ -20,6 +20,7 @@
 #include "imu.h"
 #include "servo.h"   /* 总线舵机夹爪 U/O/C */
 #include "vision.h"  /* v / vf / vc / ve / va 视觉联调 */
+#include "scan.h"    /* vs / CODE 扫码 UART8 */
 #if ARM_ENABLE
 #include "arm.h"
 #include "gm6020.h"
@@ -97,6 +98,11 @@ static void tune_send(const char *s)
 {
     if ((s_uart == 0) || (s == 0)) return;
     (void)HAL_UART_Transmit(s_uart, (uint8_t *)s, (uint16_t)strlen(s), 30u);
+}
+
+void TUNE_SendLine(const char *s)
+{
+    tune_send(s);
 }
 
 static void tune_printf(const char *fmt, ...)
@@ -272,8 +278,10 @@ static void tune_print_params(void)
                 (unsigned long)IMU_GetBadFrames(),
                 (unsigned)IMU_GetScanResult());
     tune_printf("P,yaw_scale,%.4f\r\n", (double)Chassis_GetYawScale());
-    /* 总线舵机当前位置 P */
+    /* 总线舵机：当前 P + 运行时开合标定 */
     tune_printf("S,pos,%u\r\n", (unsigned)SERVO_GetPos());
+    tune_printf("S,open,%u\r\n", (unsigned)SERVO_GetOpenP());
+    tune_printf("S,close,%u\r\n", (unsigned)SERVO_GetCloseP());
     tune_printf("S,busy,%u\r\n", (unsigned)SERVO_IsBusy());
     tune_send("P,END,0,0\r\n");
 }
@@ -340,8 +348,31 @@ static void tune_handle_line(char *ln)
         break;
 
     case 'S':
-        tune_start_strafe((float)atof(ln + 1));
-        tune_printf("OK,S,%.1f\r\n", (double)atof(ln + 1));
+        /* Sp<open>,<close>：写入运行时开合 P；Sq：查询；其余仍是横移 S<mm> */
+        if ((ln[1] == 'p') || (ln[1] == 'P'))
+        {
+            unsigned o = 0u, c = 0u;
+            if (sscanf(ln + 2, "%u,%u", &o, &c) == 2)
+            {
+                SERVO_SetOpenCloseP((uint16_t)o, (uint16_t)c);
+                tune_printf("OK,Sp,%u,%u\r\n",
+                            (unsigned)SERVO_GetOpenP(),
+                            (unsigned)SERVO_GetCloseP());
+            }
+            else tune_send("ERR,Sp\r\n");
+        }
+        else if ((ln[1] == 'q') || (ln[1] == 'Q'))
+        {
+            tune_printf("OK,Sq,%u,%u,cur=%u\r\n",
+                        (unsigned)SERVO_GetOpenP(),
+                        (unsigned)SERVO_GetCloseP(),
+                        (unsigned)SERVO_GetPos());
+        }
+        else
+        {
+            tune_start_strafe((float)atof(ln + 1));
+            tune_printf("OK,S,%.1f\r\n", (double)atof(ln + 1));
+        }
         break;
 
     case 'T':
@@ -383,7 +414,8 @@ static void tune_handle_line(char *ln)
 
     case 'M':
         s_telem = (ln[1] == '1') ? 1u : 0u;
-        if (s_telem != 0u)        {
+        if (s_telem != 0u)
+        {
             s_vofa_was_on = VOFA_IsEnable();
             VOFA_SetEnable(0u);                 /* 同一个串口：先关 JustFloat，再发文本 */
             s_telem_tick = HAL_GetTick();
@@ -391,7 +423,14 @@ static void tune_handle_line(char *ln)
         }
         else
         {
+            /* M0：关文本遥测。
+               ★蓝牙作 TUNE 主口时禁止把 JustFloat 重新打开——二进制会污染 VIS 行，
+               上位机解析失败 → 准星卡住不动（相机屏仍正常）。 */
+#if TUNE_ON_BT
+            VOFA_SetEnable(0u);
+#else
             VOFA_SetEnable(s_vofa_was_on);
+#endif
             tune_send("OK,M0\r\n");
         }
         break;
@@ -407,7 +446,7 @@ static void tune_handle_line(char *ln)
         }
         break;
 
-    case 'U':                                   /* U<P>：直接写总线位置 500~2500 */
+    case 'U':                                   /* U<P>：直接写总线位置（限 BUS_SERVO_P_MIN~MAX） */
         SERVO_SetPos((uint16_t)atoi(ln + 1), (uint16_t)BUS_SERVO_MOVE_MS);
         tune_printf("OK,U,P%u\r\n", (unsigned)SERVO_GetPos());
         break;
@@ -492,27 +531,52 @@ static void tune_handle_line(char *ln)
         uint8_t addr = (axis == 0u) ? (uint8_t)ARM_NODE_1 : (uint8_t)ARM_NODE_2;
 
         PD42S1_AngleZero(addr);                       /* 0xF8：当前位置清零 */
+        ARM_SetVirtPos(axis, 0);                      /* 软限位用的虚拟行程一并清零 */
         tune_printf("OK,N,%u,%u\r\n", (unsigned)(axis + 1u), (unsigned)addr);
         break;
     }
 
-    case 'I':                                   /* I<轴> <mm>：按【毫米】相对移动（螺杆/齿条定标用）
-                                                   例：I1 10  = 螺杆上升 10mm
-                                                       I2 -5  = 齿条缩回 5mm */
+    case 'I':                                   /* I<轴> <mm>：按【毫米】相对移动
+                                                   轴①：经 ARM_LIFT_DIR，并受软限位 */
         {
             uint8_t  axis = (ln[1] == '2') ? 1u : 0u;
             float    mm   = (float)atof(ln + 2);
             float    k    = (axis == 0u) ? (float)ARM_SCREW_PULSE_PER_MM
                                          : (float)ARM_RACK_PULSE_PER_MM;
-            long     pls  = (long)(mm * k);
+            float    req;
+            long     pls;
 
+            if (axis == 0u)
+            {
+                req = mm * (float)ARM_LIFT_DIR;
+#if ARM_LIFT_SOFT_LIMIT
+                {
+                    float cur = (float)ARM_GetVirtPos(0) / (float)ARM_SCREW_PULSE_PER_MM;
+                    float nxt = cur + req;
+                    if (nxt > (float)ARM_LIFT_MM_MAX) req = (float)ARM_LIFT_MM_MAX - cur;
+                    if (nxt < (float)ARM_LIFT_MM_MIN) req = (float)ARM_LIFT_MM_MIN - cur;
+                    if ((req < 0.05f) && (req > -0.05f))
+                    {
+                        tune_printf("ERR,I,LIMIT,cur=%.2f\r\n", (double)cur);
+                        break;
+                    }
+                }
+#endif
+            }
+            else
+            {
+                req = mm;
+            }
+
+            pls = (long)(req * k);
             if (pls == 0) { tune_send("ERR,I,0\r\n"); break; }
             if (pls >  500000) pls =  500000;
             if (pls < -500000) pls = -500000;
 
             if (ARM_Jog(axis, (int32_t)pls) != 0u)
             {
-                tune_printf("OK,I,%u,%.2f,%ld\r\n", (unsigned)(axis + 1u), (double)mm, pls);
+                tune_printf("OK,I,%u,cmd=%.2f,mov=%.2f,%ld\r\n",
+                            (unsigned)(axis + 1u), (double)mm, (double)req, pls);
             }
             else
             {
@@ -689,14 +753,29 @@ static void tune_handle_line(char *ln)
         tune_send("RM,k\r\n");
         break;
 
-    case 'u':   /* 螺杆上升 5mm */
-        (void)ARM_Jog(0u, (int32_t)(5.0f * (float)ARM_SCREW_PULSE_PER_MM));
-        tune_send("RM,u\r\n");
-        break;
-
-    case 'n':   /* 螺杆下降 5mm */
-        (void)ARM_Jog(0u, -(int32_t)(5.0f * (float)ARM_SCREW_PULSE_PER_MM));
-        tune_send("RM,n\r\n");
+    case 'u':   /* 升降「升」5mm */
+    case 'n':   /* 升降「降」5mm */
+        {
+            float mm  = (c == 'u') ? 5.0f : -5.0f;
+            float req = mm * (float)ARM_LIFT_DIR;
+            long  pls;
+#if ARM_LIFT_SOFT_LIMIT
+            {
+                float cur = (float)ARM_GetVirtPos(0) / (float)ARM_SCREW_PULSE_PER_MM;
+                float nxt = cur + req;
+                if (nxt > (float)ARM_LIFT_MM_MAX) req = (float)ARM_LIFT_MM_MAX - cur;
+                if (nxt < (float)ARM_LIFT_MM_MIN) req = (float)ARM_LIFT_MM_MIN - cur;
+                if ((req < 0.05f) && (req > -0.05f))
+                {
+                    tune_printf("ERR,I,LIMIT,cur=%.2f\r\n", (double)cur);
+                    break;
+                }
+            }
+#endif
+            pls = (long)(req * (float)ARM_SCREW_PULSE_PER_MM);
+            (void)ARM_Jog(0u, (int32_t)pls);
+            tune_printf("RM,%c,mov=%.2f\r\n", c, (double)req);
+        }
         break;
 
     case 'l':   /* 齿条伸出 10mm */
@@ -741,13 +820,32 @@ static void tune_handle_line(char *ln)
         }
         break;
 
-    case 'v':                                   /* 视觉联调：
-                                                   v      状态
-                                                   vf1/0  云台跟瞄开/关（需 VISION_GIMBAL_FOLLOW）
-                                                   vc<hex> 发 FF cmd FE，如 vc02 / vc03
-                                                   ve<k>,<id> 过滤：k=1物料色1-6 / k=2环号1-3；ve0 清
-                                                   va     到位则合爪；未到位只回报 */
-        if ((ln[1] == 'f') || (ln[1] == 'F'))
+    case 'v':                                   /* 视觉/扫码联调：
+                                                   v      视觉状态
+                                                   vs / vs0  扫码持有查询（不消费）/ 清码
+                                                   vf1/0  底盘微调开/关
+                                                   vc/ve/va 视觉命令/过滤/合爪 */
+        if ((ln[1] == 's') || (ln[1] == 'S'))
+        {
+            if (ln[2] == '0')
+            {
+                Scan_Clear();
+                tune_send("OK,vs,clear\r\n");
+            }
+            else
+            {
+                char code[20];
+                if (Scan_CopyCode(code, (uint8_t)sizeof(code)) != 0u)
+                    tune_printf("CODE,%s\r\n", code);
+                else
+                    tune_send("CODE,NONE\r\n");
+                tune_printf("OK,vs,has=%u,bytes=%lu,acc=%lu\r\n",
+                            (unsigned)Scan_HasCode(),
+                            (unsigned long)Scan_RxByteCount(),
+                            (unsigned long)Scan_AcceptCount());
+            }
+        }
+        else if ((ln[1] == 'f') || (ln[1] == 'F'))
         {
             uint8_t on = (ln[2] == '1') ? 1u : 0u;
             Vision_FollowSetEnable(on);
@@ -800,11 +898,8 @@ static void tune_handle_line(char *ln)
         else
         {
             int16_t dx = 0, dy = 0;
-            char    code[20];
             uint8_t has = Vision_GetOffset(&dx, &dy);
 
-            code[0] = 0;
-            (void)Vision_TakeTask(code, (uint8_t)sizeof(code));
             tune_printf("VIS,on=%u,bytes=%lu,frames=%lu,arr=%u,kind=%u,fol=%u,dx=%d,dy=%d\r\n",
                         (unsigned)Vision_IsOnline(),
                         (unsigned long)Vision_RxByteCount(),
@@ -814,7 +909,6 @@ static void tune_handle_line(char *ln)
                         (unsigned)Vision_FollowIsEnable(),
                         (int)dx, (int)dy);
             if (has == 0u) tune_send("VIS,NOFRAME\r\n");
-            if (code[0] != 0) tune_printf("CODE,%s\r\n", code);
         }
         break;
 
@@ -1044,6 +1138,7 @@ uint32_t TUNE_GetCmdCount(void) { return s_cmd_cnt; }
 void     TUNE_Init(void)                    {}
 void     TUNE_RxIsr(UART_HandleTypeDef *h)  { (void)h; }
 void     TUNE_Task(void)                    {}
+void     TUNE_SendLine(const char *s)       { (void)s; }
 uint8_t  TUNE_IsBusy(void)                  { return 0u; }
 float    TUNE_GetYawDeg(void)               { return 0.0f; }
 uint32_t TUNE_GetCmdCount(void)             { return 0u; }

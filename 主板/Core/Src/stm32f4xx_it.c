@@ -57,6 +57,7 @@
 /* External variables --------------------------------------------------------*/
 extern TIM_HandleTypeDef htim6;
 extern UART_HandleTypeDef huart7;   /* MaixCam 视觉 UART7 */
+extern UART_HandleTypeDef huart8;   /* 扫码相机 UART8 */
 extern UART_HandleTypeDef huart5;
 extern UART_HandleTypeDef huart3;
 extern UART_HandleTypeDef huart4;   /* IMU 串口（老方案 UART4 = PC10/PC11） */
@@ -295,6 +296,14 @@ void TIM6_DAC_IRQHandler(void)
 void UART7_IRQHandler(void)
 {
   HAL_UART_IRQHandler(&huart7);
+}
+
+/**
+  * @brief This function handles UART8 global interrupt（扫码相机）.
+  */
+void UART8_IRQHandler(void)
+{
+  HAL_UART_IRQHandler(&huart8);
 }
 /* USER CODE BEGIN 1 */
 

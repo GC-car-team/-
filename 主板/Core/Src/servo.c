@@ -13,8 +13,17 @@
 
 static UART_HandleTypeDef *s_uart;
 static uint16_t s_pos;
+static uint16_t s_open_p;
+static uint16_t s_close_p;
 static uint8_t  s_busy;
 static uint32_t s_busy_until;
+
+static uint16_t clamp_p(uint16_t pos)
+{
+    if (pos < (uint16_t)BUS_SERVO_P_MIN) return (uint16_t)BUS_SERVO_P_MIN;
+    if (pos > (uint16_t)BUS_SERVO_P_MAX) return (uint16_t)BUS_SERVO_P_MAX;
+    return pos;
+}
 
 static void bus_tx(const uint8_t *data, uint16_t n)
 {
@@ -38,8 +47,7 @@ static void bus_goto(uint16_t pos, uint16_t time_ms)
     uint16_t t = time_ms;
     uint16_t id = (uint16_t)BUS_SERVO_ID;
 
-    if (pos < (uint16_t)BUS_SERVO_P_MIN) pos = (uint16_t)BUS_SERVO_P_MIN;
-    if (pos > (uint16_t)BUS_SERVO_P_MAX) pos = (uint16_t)BUS_SERVO_P_MAX;
+    pos = clamp_p(pos);
     if (t < 100u) t = 100u;
     if (t > 9999u) t = 9999u;
 
@@ -54,11 +62,13 @@ static void bus_goto(uint16_t pos, uint16_t time_ms)
 void SERVO_Init(void)
 {
     s_uart = BUS_SERVO_UART;
-    s_pos = (uint16_t)BUS_SERVO_OPEN_P;
+    s_open_p  = clamp_p((uint16_t)BUS_SERVO_OPEN_P);
+    s_close_p = clamp_p((uint16_t)BUS_SERVO_CLOSE_P);
+    s_pos = s_open_p;
     s_busy = 0u;
     s_busy_until = 0u;
     if (s_uart != 0)
-        bus_goto((uint16_t)BUS_SERVO_OPEN_P, (uint16_t)BUS_SERVO_MOVE_MS);
+        bus_goto(s_open_p, (uint16_t)BUS_SERVO_MOVE_MS);
 }
 
 void SERVO_Task(void)
@@ -72,9 +82,17 @@ void SERVO_Gripper(uint8_t open)
 #if BUS_SERVO_INVERT
     open = (uint8_t)(open ? 0u : 1u);
 #endif
-    bus_goto(open ? (uint16_t)BUS_SERVO_OPEN_P : (uint16_t)BUS_SERVO_CLOSE_P,
-             (uint16_t)BUS_SERVO_MOVE_MS);
+    bus_goto(open ? s_open_p : s_close_p, (uint16_t)BUS_SERVO_MOVE_MS);
 }
+
+void SERVO_SetOpenCloseP(uint16_t open_p, uint16_t close_p)
+{
+    s_open_p  = clamp_p(open_p);
+    s_close_p = clamp_p(close_p);
+}
+
+uint16_t SERVO_GetOpenP(void)  { return s_open_p; }
+uint16_t SERVO_GetCloseP(void) { return s_close_p; }
 
 void SERVO_SetPos(uint16_t pos, uint16_t time_ms)
 {
@@ -103,5 +121,8 @@ void     SERVO_SetPos(uint16_t p, uint16_t t) { (void)p; (void)t; }
 uint16_t SERVO_GetPos(void) { return 0u; }
 uint8_t  SERVO_IsBusy(void) { return 0u; }
 void     SERVO_SetDeg(float deg) { (void)deg; }
+void     SERVO_SetOpenCloseP(uint16_t o, uint16_t c) { (void)o; (void)c; }
+uint16_t SERVO_GetOpenP(void)  { return 0u; }
+uint16_t SERVO_GetCloseP(void) { return 0u; }
 
 #endif

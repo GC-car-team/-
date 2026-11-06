@@ -29,235 +29,372 @@
         radial-gradient(900px 500px at 100% 0%, #1a2a22 0%, transparent 50%),
         linear-gradient(165deg, var(--bg0), var(--bg1));
     }
-    main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
-    .hero { margin-bottom: 1.5rem; }
-    .hero .brand { font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--acc); margin: 0 0 0.35rem; }
-    .hero h1 { font-size: clamp(1.6rem, 3vw, 2.1rem); margin: 0 0 0.4rem; font-weight: 700; }
-    .hero p { margin: 0; color: var(--mut); font-size: 0.95rem; max-width: 36rem; line-height: 1.45; }
-    .grid { display: grid; gap: 1rem; }
-    @media (min-width: 860px) {
-      .grid-2 { grid-template-columns: 1.1fr 0.9fr; }
-      .span-2 { grid-column: 1 / -1; }
+    main { max-width: 920px; margin: 0 auto; padding: 1.25rem 1.1rem 2.5rem; }
+    .top {
+      display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+      gap: 0.75rem; margin-bottom: 1rem;
     }
-    section {
+    .brand { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--acc); margin: 0 0 0.2rem; }
+    .top h1 { font-size: 1.55rem; margin: 0; font-weight: 700; }
+    .top-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+    .tabs {
+      display: flex; flex-wrap: wrap; gap: 0.35rem;
+      margin-bottom: 0.9rem; padding-bottom: 0.65rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .tabs button {
+      padding: 0.45rem 0.85rem; border: 1px solid transparent; border-radius: 8px;
+      background: transparent; color: var(--mut); font-weight: 600; font-size: 0.88rem;
+      font-family: inherit; cursor: pointer;
+    }
+    .tabs button:hover { color: var(--fg); background: #1a261e; }
+    .tabs button.active {
+      color: #102010; background: var(--acc); border-color: transparent; font-weight: 700;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .block {
       background: color-mix(in srgb, var(--panel) 92%, black);
       border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 1rem 1.1rem 1.15rem;
+      border-radius: 12px;
+      padding: 0.95rem 1rem 1.05rem;
+      margin-bottom: 0.75rem;
     }
-    section h2 {
-      margin: 0 0 0.85rem; font-size: 0.8rem; font-weight: 600;
+    .block h2 {
+      margin: 0 0 0.7rem; font-size: 0.78rem; font-weight: 600;
       letter-spacing: 0.08em; text-transform: uppercase; color: var(--mut);
+    }
+    .block h3 {
+      margin: 0.85rem 0 0.5rem; font-size: 0.72rem; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase; color: var(--mut);
     }
     label { display: block; font-size: 0.72rem; color: var(--mut); margin-bottom: 0.28rem; }
     input, select {
-      width: 100%; padding: 0.55rem 0.6rem; border-radius: 8px;
+      width: 100%; padding: 0.5rem 0.55rem; border-radius: 8px;
       border: 1px solid var(--line); background: #101811; color: var(--fg);
       font-family: "IBM Plex Mono", monospace; font-size: 0.85rem;
     }
-    .row { display: grid; gap: 0.65rem; align-items: end; }
-    .row-3 { grid-template-columns: 1fr 1fr 1fr; }
-    .row-4 { grid-template-columns: 1.2fr 0.7fr auto auto; }
+    input[type="range"] { padding: 0; }
+    .row { display: grid; gap: 0.6rem; align-items: end; }
     .row-2 { grid-template-columns: 1fr 1fr; }
-    .btns { display: flex; flex-wrap: wrap; gap: 0.45rem; }
-    button {
-      padding: 0.55rem 0.85rem; border: 0; border-radius: 8px;
-      background: var(--acc); color: #102010; font-weight: 700;
-      font-family: inherit; cursor: pointer; font-size: 0.88rem;
+    .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .row-4 { grid-template-columns: 1.3fr 0.7fr auto auto; }
+    @media (max-width: 720px) {
+      .row-2, .row-3, .row-4 { grid-template-columns: 1fr; }
     }
-    button:hover { filter: brightness(1.05); }
-    button.ghost { background: #26352b; color: var(--fg); }
-    button.danger { background: var(--bad); color: #fff; }
-    button.soft { background: #314a38; color: var(--fg); }
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
-    .hint { font-size: 0.78rem; color: var(--mut); margin: 0.55rem 0 0; line-height: 1.4; }
-    .stat { font-family: "IBM Plex Mono", monospace; font-size: 0.8rem; line-height: 1.55; }
+    .gap { margin-top: 0.7rem; }
+    .btns { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    button.act {
+      padding: 0.5rem 0.8rem; border: 0; border-radius: 8px;
+      background: var(--acc); color: #102010; font-weight: 700;
+      font-family: inherit; cursor: pointer; font-size: 0.86rem;
+    }
+    button.act:hover { filter: brightness(1.05); }
+    button.act.ghost { background: #26352b; color: var(--fg); }
+    button.act.danger { background: var(--bad); color: #fff; }
+    button.act.soft { background: #314a38; color: var(--fg); }
+    .hint { font-size: 0.76rem; color: var(--mut); margin: 0.45rem 0 0; line-height: 1.4; }
+    .stat { font-family: "IBM Plex Mono", monospace; font-size: 0.8rem; line-height: 1.5; }
     .ok { color: var(--acc2); } .bad { color: var(--bad); } .warn { color: var(--warn); }
     .cross {
-      width: 100%; max-width: 240px; aspect-ratio: 4/3; background: #0c120e;
-      border: 1px solid var(--line); border-radius: 10px; position: relative; margin-top: 0.5rem;
+      width: 100%; max-width: 260px; aspect-ratio: 4/3; background: #0c120e;
+      border: 1px solid var(--line); border-radius: 10px; position: relative; margin-top: 0.45rem;
     }
-    .cross::before, .cross::after {
-      content: ""; position: absolute; background: #2a4032;
-    }
+    .cross::before, .cross::after { content: ""; position: absolute; background: #2a4032; }
     .cross::before { left: 50%; top: 8%; bottom: 8%; width: 1px; transform: translateX(-50%); }
     .cross::after { top: 50%; left: 8%; right: 8%; height: 1px; transform: translateY(-50%); }
     .cross .dot {
-      position: absolute; width: 10px; height: 10px; margin: -5px;
+      position: absolute; width: 10px; height: 10px;
+      margin: 0; transform: translate(-50%, -50%);
       border-radius: 50%; background: var(--acc); box-shadow: 0 0 0 3px rgba(196,240,97,.2);
       display: none;
+      left: 50%; top: 50%;
+    }
+    .log-bar {
+      position: sticky; bottom: 0; margin-top: 0.5rem;
+      background: color-mix(in srgb, var(--bg0) 88%, black);
+      border: 1px solid var(--line); border-radius: 12px; padding: 0.75rem 0.9rem;
+    }
+    .log-bar h2 {
+      margin: 0 0 0.55rem; font-size: 0.78rem; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--mut);
     }
     #log {
-      height: 200px; overflow: auto; font-family: "IBM Plex Mono", monospace;
+      height: 160px; overflow: auto; font-family: "IBM Plex Mono", monospace;
       font-size: 0.72rem; background: #0c120e; border: 1px solid var(--line);
-      border-radius: 10px; padding: 0.65rem; line-height: 1.45; white-space: pre-wrap;
+      border-radius: 8px; padding: 0.55rem; line-height: 1.45; white-space: pre-wrap;
     }
     .pill {
-      display: inline-flex; align-items: center; gap: 0.35rem;
-      padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.72rem;
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.18rem 0.5rem; border-radius: 999px; font-size: 0.72rem;
       background: #243328; color: var(--mut); font-family: "IBM Plex Mono", monospace;
     }
     .pill.on { color: #102010; background: var(--acc); font-weight: 600; }
+    .check {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.35rem 0.55rem; border-radius: 8px; background: #243328;
+      color: var(--fg); font-size: 0.82rem; cursor: pointer;
+    }
+    .split {
+      display: grid; gap: 0.75rem;
+    }
+    @media (min-width: 780px) {
+      .split-2 { grid-template-columns: 1.15fr 0.85fr; }
+    }
   </style>
 </head>
 <body>
 <main>
-  <header class="hero">
-    <p class="brand">GC-Car Bench</p>
-    <h1>蓝牙无线联调</h1>
-    <p>经 HC-05 发主板 TUNE：走直、转角、舵机与视觉命令。可选 WiFi 看相机帧。默认波特率 9600。</p>
-  </header>
+  <div class="top">
+    <div>
+      <p class="brand">GC-Car Bench</p>
+      <h1>蓝牙联调</h1>
+    </div>
+    <div class="top-meta">
+      <span class="pill" id="verPill">ver —</span>
+      <span class="pill" id="btPill">BT off</span>
+      <button class="act danger" id="btnStop" type="button">急停 X</button>
+    </div>
+  </div>
 
-  <div class="grid grid-2">
-    <section class="span-2">
-      <h2>连接</h2>
+  <nav class="tabs" id="tabs">
+    <button type="button" data-tab="link" class="active">连接</button>
+    <button type="button" data-tab="chassis">底盘</button>
+    <button type="button" data-tab="servo">夹爪</button>
+    <button type="button" data-tab="vision">视觉配合</button>
+    <button type="button" data-tab="lift">升降</button>
+    <button type="button" data-tab="scan">扫码</button>
+    <button type="button" data-tab="adv">高级</button>
+  </nav>
+
+  <!-- 连接 -->
+  <div class="panel active" data-panel="link">
+    <div class="block">
+      <h2>蓝牙 HC-05</h2>
       <div class="row row-4">
         <div>
-          <label>蓝牙 COM（HC-05）</label>
+          <label>COM</label>
           <select id="btPort"></select>
         </div>
         <div>
           <label>波特率</label>
           <input id="baud" value="9600" />
         </div>
-        <button id="btnRefresh" class="ghost" type="button">刷新口</button>
+        <button class="act ghost" id="btnRefresh" type="button">刷新口</button>
         <div class="btns">
-          <button id="btnConnect" type="button">连接</button>
-          <button id="btnDisc" class="ghost" type="button">断开</button>
+          <button class="act" id="btnConnect" type="button">连接</button>
+          <button class="act ghost" id="btnDisc" type="button">断开</button>
         </div>
       </div>
-      <div class="row row-2" style="margin-top:0.65rem">
-        <div><label>手动 COM（扫不到时）</label><input id="btManual" placeholder="COM8" /></div>
-        <div><label>状态</label><div class="stat" id="linkStat" style="padding-top:0.45rem">—</div></div>
+      <div class="row row-2 gap">
+        <div><label>手动 COM</label><input id="btManual" placeholder="COM17" /></div>
+        <div><label>状态</label><div class="stat" id="linkStat" style="padding-top:0.4rem">—</div></div>
       </div>
-      <div class="row row-3" style="margin-top:0.65rem">
-        <div><label>相机 WiFi IP（可选）</label><input id="visionHost" placeholder="192.168.x.x" /></div>
-        <div><label>TCP</label><input id="visionTcpPort" type="number" value="5555" /></div>
-        <button id="btnProbe" class="ghost" type="button">只测相机</button>
-      </div>
-      <p class="hint" id="portHint">端口检测中… PC 先配对 HC-05，在设备管理器确认蓝牙串口号。</p>
-    </section>
+      <p class="hint" id="portHint">端口检测中…</p>
+    </div>
+  </div>
 
-    <section>
-      <h2>底盘</h2>
+  <!-- 底盘 -->
+  <div class="panel" data-panel="chassis">
+    <div class="block">
+      <h2>走直 / 转向</h2>
       <div class="row row-2">
-        <div><label>前进距离 mm（负=后退）</label><input id="goMm" type="number" value="500" /></div>
-        <div class="btns" style="padding-bottom:2px">
-          <button id="btnGo" type="button">走直 G</button>
-          <button id="btnZero" class="soft" type="button">航向归零 Z</button>
+        <div><label>距离 mm（负=后退）</label><input id="goMm" type="number" value="500" /></div>
+        <div class="btns">
+          <button class="act" id="btnGo" type="button">走直 G</button>
+          <button class="act soft" id="btnZero" type="button">归零 Z</button>
         </div>
       </div>
-      <div class="btns" style="margin-top:0.75rem">
-        <button id="btnL90" class="soft" type="button">左转 90°</button>
-        <button id="btnR90" class="soft" type="button">右转 90°</button>
-        <button id="btnStop" class="danger" type="button">急停 X</button>
+      <div class="btns gap">
+        <button class="act soft" id="btnL90" type="button">左转 90°</button>
+        <button class="act soft" id="btnR90" type="button">右转 90°</button>
       </div>
-      <p class="hint">走直会锁定起步航向并纠偏；遥控连发 w 不会回正，请用本页 G/T。</p>
-    </section>
+      <p class="hint">走直用本页 G；勿用手机连发 w。</p>
+    </div>
+  </div>
 
-    <section class="span-2">
-      <h2>相机 + 舵机配合（车上 UART7）</h2>
-      <p class="hint" style="margin-top:0">流程：张开 → 切视觉模式 → 过滤目标 → 云台跟瞄 → 看 dx/dy → 到位合爪。相机跑 <code>视觉/main.py</code>，与主板串口相连。</p>
-      <div class="row row-3" style="margin-top:0.75rem">
+  <!-- 夹爪 -->
+  <div class="panel" data-panel="servo">
+    <div class="block">
+      <h2>开合</h2>
+      <div class="btns">
+        <button class="act" id="btnOpen" type="button">张开</button>
+        <button class="act" id="btnClose" type="button">合紧</button>
+        <button class="act ghost" id="btnQuerySp" type="button">读 Sq</button>
+      </div>
+      <p class="stat gap" id="servoStat">开/合: —</p>
+    </div>
+    <div class="block">
+      <h2>定标</h2>
+      <div class="row row-2">
         <div>
-          <label>目标类型</label>
+          <label>试探 P <span id="posLabel" class="pill">2275</span></label>
+          <input id="pos" type="range" min="500" max="4000" step="10" value="2275" />
+          <input id="posNum" type="number" min="500" max="4000" value="2275" class="gap" />
+        </div>
+        <div class="btns">
+          <button class="act ghost" id="btnGoto" type="button">试 U</button>
+          <button class="act soft" id="btnSetOpen" type="button">设为张开</button>
+          <button class="act soft" id="btnSetClose" type="button">设为合紧</button>
+        </div>
+      </div>
+      <div class="row row-3 gap">
+        <div><label>张开 P</label><input id="openP" type="number" value="2480" min="500" max="4000" /></div>
+        <div><label>合紧 P</label><input id="closeP" type="number" value="1950" min="500" max="4000" /></div>
+        <div class="btns"><button class="act" id="btnCalib" type="button">写入 Sp</button></div>
+      </div>
+      <p class="hint">写入后 O/C/va 立即用新值；掉电需重写或改 config.h。</p>
+    </div>
+  </div>
+
+  <!-- 视觉配合 -->
+  <div class="panel" data-panel="vision">
+    <div class="split split-2">
+      <div class="block">
+        <h2>一键配合</h2>
+        <div>
+          <label>目标</label>
           <select id="coopTarget">
-            <option value="mat,3,1">物料 · 红 (vc03 / ve1,1)</option>
-            <option value="mat,7,2">物料 · 黄 (vc07 / ve1,2)</option>
-            <option value="mat,5,3">物料 · 蓝 (vc05 / ve1,3)</option>
-            <option value="mat,4,4">物料 · 绿 (vc04 / ve1,4)</option>
-            <option value="mat,6,5">物料 · 黑 (vc06 / ve1,5)</option>
-            <option value="mat,8,6">物料 · 浅蓝 (vc08 / ve1,6)</option>
-            <option value="ring,2,1">圆环 · 1 (vc02 / ve2,1)</option>
-            <option value="ring,2,2">圆环 · 2 (vc02 / ve2,2)</option>
-            <option value="ring,2,3">圆环 · 3 (vc02 / ve2,3)</option>
+            <option value="mat,3,1">物料 · 红</option>
+            <option value="mat,7,2">物料 · 黄</option>
+            <option value="mat,5,3">物料 · 蓝</option>
+            <option value="mat,4,4">物料 · 绿</option>
+            <option value="mat,6,5">物料 · 黑</option>
+            <option value="mat,8,6">物料 · 浅蓝</option>
+            <option value="ring,2,1">圆环 · 1</option>
+            <option value="ring,2,2">圆环 · 2</option>
+            <option value="ring,2,3">圆环 · 3</option>
           </select>
         </div>
-        <div>
-          <label>选项</label>
-          <div class="btns" style="padding-top:0.35rem">
-            <label class="pill" style="cursor:pointer"><input type="checkbox" id="coopFollow" checked /> 云台跟瞄</label>
-            <label class="pill" style="cursor:pointer"><input type="checkbox" id="coopAuto" /> 到位自动合爪</label>
-          </div>
+        <div class="btns gap">
+          <label class="check"><input type="checkbox" id="coopFollow" checked /> 底盘微调</label>
+            <label class="check"><input type="checkbox" id="coopAuto" checked /> 到位自动合爪</label>
         </div>
-        <div class="btns">
-          <button id="btnCoopStart" type="button">开始配合</button>
-          <button id="btnCoopStop" class="ghost" type="button">停止</button>
-          <button id="btnArrive" class="soft" type="button">合爪 va</button>
+        <div class="btns gap">
+          <button class="act" id="btnCoopStart" type="button">开始</button>
+          <button class="act ghost" id="btnCoopStop" type="button">停止</button>
+          <button class="act soft" id="btnArrive" type="button">合爪</button>
         </div>
+        <p class="stat gap" id="coopStat">MCU 视觉: —</p>
       </div>
-      <p class="stat" id="coopStat" style="margin-top:0.75rem">MCU 视觉: —</p>
-      <div class="cross" id="mcuCross" style="max-width:280px"><div class="dot" id="mcuDot"></div></div>
-      <p class="hint">准星用主板回报的 dx/dy（中心为 0）。arr=1 表示已对准，可点合爪。</p>
-    </section>
-
-    <section>
-      <h2>舵机（经主板）</h2>
+      <div class="block">
+        <h2>准星（MCU dx/dy）</h2>
+        <div class="cross" id="mcuCross"><div class="dot" id="mcuDot"></div></div>
+        <p class="hint">arr=1 可合爪。相机跑 视觉/main.py → UART7。</p>
+      </div>
+    </div>
+    <div class="block">
+      <h2>手控视觉</h2>
       <div class="btns">
-        <button id="btnOpen" type="button">张开 O</button>
-        <button id="btnClose" type="button">合紧 C</button>
+        <button class="act ghost" data-vcmd="1">全色</button>
+        <button class="act ghost" data-vcmd="2">圆环</button>
+        <button class="act ghost" data-vcmd="3">红</button>
+        <button class="act ghost" data-vcmd="7">黄</button>
+        <button class="act ghost" data-vcmd="5">蓝</button>
+        <button class="act ghost" data-vcmd="4">绿</button>
+        <button class="act ghost" data-vcmd="6">黑</button>
+        <button class="act ghost" data-vcmd="8">浅蓝</button>
       </div>
-      <div class="row row-3" style="margin-top:0.75rem">
-        <div><label>自定义 P</label><input id="pos" type="number" value="1500" min="500" max="2500" /></div>
-        <div><label>标定开/合（网页记忆）</label>
-          <div class="row row-2">
-            <input id="openP" type="number" value="2000" title="open" />
-            <input id="closeP" type="number" value="600" title="close" />
-          </div>
-        </div>
+      <div class="btns gap">
+        <button class="act soft" id="btnFolOn" type="button">底盘微调开</button>
+        <button class="act ghost" id="btnFolOff" type="button">底盘微调关</button>
+        <button class="act ghost" id="btnVis" type="button">查 v</button>
+      </div>
+      <div class="row row-3 gap">
+        <div><label>ve kind</label><input id="expKind" type="number" value="1" min="0" max="2" /></div>
+        <div><label>ve id</label><input id="expId" type="number" value="1" min="0" max="6" /></div>
+        <div class="btns"><button class="act ghost" id="btnExpect" type="button">设 ve</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 升降：同步带轴① -->
+  <div class="panel" data-panel="lift">
+    <div class="block">
+      <h2>同步带升降（轴①）</h2>
+      <div class="row row-2">
+        <div><label>步长 mm</label><input id="liftMm" type="number" value="5" step="1" /></div>
         <div class="btns">
-          <button id="btnGoto" class="ghost" type="button">U 定位</button>
-          <button id="btnCalib" class="ghost" type="button">记 P</button>
+          <button class="act" id="btnLiftUp" type="button">↑ 升</button>
+          <button class="act soft" id="btnLiftDn" type="button">↓ 降</button>
         </div>
       </div>
-    </section>
+      <div class="btns gap">
+        <button class="act ghost" id="btnLiftRead" type="button">读 L</button>
+        <button class="act ghost" id="btnLiftZero" type="button">置零 N1</button>
+        <button class="act soft" id="btnLiftEn" type="button">使能</button>
+        <button class="act ghost" id="btnLiftDis" type="button">失能</button>
+      </div>
+      <div class="row row-2 gap">
+        <div><label>转速 rpm</label><input id="liftRpm" type="number" value="120" /></div>
+        <div class="btns"><button class="act ghost" id="btnLiftRpm" type="button">写 V1</button></div>
+      </div>
+      <p class="stat gap" id="liftStat">轴①: —</p>
+      <p class="hint">读L=看位置；置零N1=当前当0（软限位基准）；使能/失能=电机抱紧/松开；写V1=点动转速。<br/>方向已在固件取反。软限位默认 0~150mm（置零后），总行程不对改 config.h 的 ARM_LIFT_MM_MAX。</p>
+    </div>
+  </div>
 
-    <section>
-      <h2>视觉命令（经蓝牙 → 主板 → UART7）</h2>
-      <div class="btns">
-        <button class="ghost" data-vcmd="1">01 全色</button>
-        <button class="ghost" data-vcmd="2">02 圆环</button>
-        <button class="ghost" data-vcmd="3">03 红</button>
-        <button class="ghost" data-vcmd="7">07 黄</button>
-        <button class="ghost" data-vcmd="5">05 蓝</button>
-        <button class="ghost" data-vcmd="4">04 绿</button>
-        <button class="ghost" data-vcmd="6">06 黑</button>
-        <button class="ghost" data-vcmd="8">08 浅蓝</button>
+  <!-- 扫码：UART8 → 主板持有 → BT CODE -->
+  <div class="panel" data-panel="scan">
+    <div class="block">
+      <h2>主板任务码</h2>
+      <p class="stat" id="scanStatus">等待中</p>
+      <p class="stat gap" id="scanCode" style="font-size:1.4rem;letter-spacing:0.06em">—</p>
+      <p class="stat" id="scanParts">—</p>
+      <div class="btns gap">
+        <button class="act" id="btnScanQuery" type="button">查询 vs</button>
+        <button class="act ghost" id="btnScanClear" type="button">清码 vs0</button>
+        <label class="check"><input type="checkbox" id="scanAuto" checked /> 自动轮询</label>
       </div>
-      <div class="btns" style="margin-top:0.65rem">
-        <button id="btnFolOn" class="soft" type="button">跟瞄 vf1</button>
-        <button id="btnFolOff" class="ghost" type="button">停跟 vf0</button>
-        <button id="btnVis" class="ghost" type="button">查状态 v</button>
-      </div>
-      <div class="row row-3" style="margin-top:0.65rem">
-        <div><label>过滤 kind（1物料/2环）</label><input id="expKind" type="number" value="1" min="0" max="2" /></div>
-        <div><label>id（色1-6 / 环1-3）</label><input id="expId" type="number" value="1" min="0" max="6" /></div>
-        <button id="btnExpect" class="ghost" type="button">设 ve</button>
-      </div>
-    </section>
+      <p class="hint">扫码相机接 UART8（PE1 TX / PE0 RX）。本页只认主板经蓝牙回报的 CODE（确认主板已收到）。</p>
+    </div>
+  </div>
 
-    <section>
-      <h2>相机监视（可选 WiFi）</h2>
-      <p class="stat" id="visStat">vision: —</p>
+  <!-- 高级 -->
+  <div class="panel" data-panel="adv">
+    <div class="block">
+      <h2>相机 WiFi（可选）</h2>
+      <div class="row row-3">
+        <div><label>IP</label><input id="visionHost" placeholder="192.168.x.x" /></div>
+        <div><label>TCP</label><input id="visionTcpPort" type="number" value="5555" /></div>
+        <div class="btns"><button class="act ghost" id="btnProbe" type="button">只测相机</button></div>
+      </div>
+      <p class="stat gap" id="visStat">vision: —</p>
       <div class="cross" id="cross"><div class="dot" id="dot"></div></div>
-      <p class="hint">仅显示联调脚本帧；模式切换请用左侧「经蓝牙」按钮，与车上 UART7 一致。</p>
-    </section>
-
-    <section class="span-2">
-      <h2>日志 · 原始命令</h2>
-      <div class="row row-2" style="margin-bottom:0.65rem">
-        <div><label>自定义 TUNE 一行</label><input id="raw" placeholder="例如 G800 或 Y180" /></div>
-        <div class="btns" style="align-items:end">
-          <button id="btnRaw" class="ghost" type="button">发送</button>
-          <span class="pill" id="verPill">ver —</span>
-          <span class="pill" id="btPill">BT off</span>
-        </div>
+    </div>
+    <div class="block">
+      <h2>原始 TUNE</h2>
+      <div class="row row-2">
+        <div><label>一行命令</label><input id="raw" placeholder="G800 / Y180 / Sp2480,1950" /></div>
+        <div class="btns"><button class="act ghost" id="btnRaw" type="button">发送</button></div>
       </div>
-      <div id="log"></div>
-    </section>
+    </div>
+  </div>
+
+  <div class="log-bar">
+    <h2>日志</h2>
+    <div id="log"></div>
   </div>
 </main>
 <script>
+function showTab(name) {
+  document.querySelectorAll('.tabs button').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-tab') === name);
+  });
+  document.querySelectorAll('.panel').forEach(p => {
+    p.classList.toggle('active', p.getAttribute('data-panel') === name);
+  });
+  try { localStorage.setItem('gc_bench_tab', name); } catch (_) {}
+}
+document.getElementById('tabs').onclick = (e) => {
+  const b = e.target.closest('button[data-tab]');
+  if (b) showTab(b.getAttribute('data-tab'));
+};
+try {
+  const t = localStorage.getItem('gc_bench_tab');
+  if (t) showTab(t);
+} catch (_) {}
+
 async function j(url, opt) {
   const r = await fetch(url, opt);
   const text = await r.text();
@@ -283,7 +420,7 @@ async function refreshPorts() {
     el.innerHTML = '';
     if (!ports.length) {
       el.innerHTML = '<option value="">（无端口）</option>';
-      hint.innerHTML = '<span class="bad">扫到 0 个串口</span>：确认 HC-05 已配对并出现 COM。';
+      hint.innerHTML = '<span class="bad">无串口</span>：确认 HC-05 已配对。';
     } else {
       let prefer = '';
       ports.forEach(p => {
@@ -297,11 +434,11 @@ async function refreshPorts() {
       else if ([...el.options].some(o => o.value === cur)) el.value = cur;
       const hc = ports.filter(p => (p.bt_name || '').toUpperCase().includes('HC'));
       hint.innerHTML = hc.length
-        ? '<span class="ok">找到车上蓝牙</span>：' + hc.map(p => p.device + '(' + p.bt_name + ')').join(', ') + ' · 波特率 9600'
-        : '<span class="ok">扫到 ' + ports.length + ' 个</span>：优先选名称含 HC-05 的口；没有则到「设置→蓝牙」确认已配对并接通。';
+        ? '<span class="ok">HC-05</span> ' + hc.map(p => p.device).join(', ') + ' · 9600'
+        : '<span class="ok">' + ports.length + ' 口</span>：优先选含 HC-05 的。';
     }
   } catch (e) {
-    hint.innerHTML = '<span class="bad">读端口失败</span>：请用 start.bat 打开 http://127.0.0.1:8766/';
+    hint.innerHTML = '<span class="bad">读端口失败</span>';
   }
 }
 async function connect() {
@@ -345,12 +482,28 @@ document.getElementById('btnR90').onclick = () =>
   j('/api/chassis/turn', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deg: -90 }) });
 document.getElementById('btnStop').onclick = () => j('/api/chassis/stop', { method: 'POST' });
 document.getElementById('btnZero').onclick = () => j('/api/chassis/zero', { method: 'POST' });
+function syncPosInputs(v) {
+  const n = Math.max(500, Math.min(4000, Math.round(+v || 2275)));
+  document.getElementById('pos').value = n;
+  document.getElementById('posNum').value = n;
+  document.getElementById('posLabel').textContent = String(n);
+  return n;
+}
+document.getElementById('pos').oninput = (e) => syncPosInputs(e.target.value);
+document.getElementById('posNum').onchange = (e) => syncPosInputs(e.target.value);
 document.getElementById('btnOpen').onclick = () => j('/api/open', { method: 'POST' });
 document.getElementById('btnClose').onclick = () => j('/api/close', { method: 'POST' });
+document.getElementById('btnSetOpen').onclick = () => {
+  document.getElementById('openP').value = syncPosInputs(document.getElementById('pos').value);
+};
+document.getElementById('btnSetClose').onclick = () => {
+  document.getElementById('closeP').value = syncPosInputs(document.getElementById('pos').value);
+};
+document.getElementById('btnQuerySp').onclick = () =>
+  j('/api/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ line: 'Sq' }) });
 document.getElementById('btnArrive').onclick = () => j('/api/arrive_close', { method: 'POST' });
 document.getElementById('btnCoopStart').onclick = async () => {
   const raw = document.getElementById('coopTarget').value.split(',');
-  // mat|ring, cmd, id
   const kind = raw[0] === 'ring' ? 2 : 1;
   const cmd = +raw[1];
   const id = +raw[2];
@@ -368,12 +521,45 @@ document.getElementById('btnCoopStart').onclick = async () => {
 document.getElementById('btnCoopStop').onclick = () => j('/api/coop/stop', { method: 'POST' });
 document.getElementById('btnGoto').onclick = () =>
   j('/api/goto', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pos: +document.getElementById('pos').value }) });
-document.getElementById('btnCalib').onclick = () =>
-  j('/api/calib', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ open_p: +document.getElementById('openP').value, close_p: +document.getElementById('closeP').value }) });
+    body: JSON.stringify({ pos: syncPosInputs(document.getElementById('pos').value) }) });
+document.getElementById('btnCalib').onclick = async () => {
+  try {
+    const r = await j('/api/calib', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        open_p: +document.getElementById('openP').value,
+        close_p: +document.getElementById('closeP').value,
+        apply_mcu: true
+      })
+    });
+    const el = document.getElementById('servoStat');
+    if (el && r) el.textContent = `MCU 开/合: ${r.open_p} / ${r.close_p}`;
+  } catch (e) { alert(e.message); }
+};
 document.getElementById('btnFolOn').onclick = () => j('/api/follow?on=1', { method: 'POST' });
 document.getElementById('btnFolOff').onclick = () => j('/api/follow?on=0', { method: 'POST' });
+
+function liftMm() {
+  const v = +document.getElementById('liftMm').value;
+  return Number.isFinite(v) && Math.abs(v) > 0.01 ? Math.abs(v) : 5;
+}
+document.getElementById('btnLiftUp').onclick = () =>
+  j('/api/arm/jog', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mm: liftMm() }) });
+document.getElementById('btnLiftDn').onclick = () =>
+  j('/api/arm/jog', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mm: -liftMm() }) });
+document.getElementById('btnLiftRead').onclick = () => j('/api/arm/read', { method: 'POST' });
+document.getElementById('btnLiftZero').onclick = () => j('/api/arm/zero', { method: 'POST' });
+document.getElementById('btnLiftEn').onclick = () => j('/api/arm/enable?on=1', { method: 'POST' });
+document.getElementById('btnLiftDis').onclick = () => j('/api/arm/enable?on=0', { method: 'POST' });
+document.getElementById('btnLiftRpm').onclick = () =>
+  j('/api/arm/rpm', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rpm: +document.getElementById('liftRpm').value || 120 }) });
+
+document.getElementById('btnScanQuery').onclick = () => j('/api/scan/query', { method: 'POST' });
+document.getElementById('btnScanClear').onclick = () => j('/api/scan/clear', { method: 'POST' });
+let _scanPollAt = 0;
 document.getElementById('btnVis').onclick = () =>
   j('/api/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ line: 'v' }) });
 document.getElementById('btnExpect').onclick = () =>
@@ -389,6 +575,17 @@ document.querySelectorAll('[data-vcmd]').forEach(btn => {
   });
 });
 
+let _servoSynced = false;
+/** 准星保持上一有效位置，避免 NOFRAME/清空时消失或钉在中心 */
+let _mcuAim = null; // { nx, ny, t }
+function placeMcuDot(nx, ny, live, arrived) {
+  const mdot = document.getElementById('mcuDot');
+  mdot.style.display = 'block';
+  mdot.style.left = (nx * 100).toFixed(2) + '%';
+  mdot.style.top = (ny * 100).toFixed(2) + '%';
+  mdot.style.opacity = live ? '1' : '0.4';
+  mdot.style.background = arrived ? 'var(--acc2)' : 'var(--acc)';
+}
 async function poll() {
   try {
     const s = await j('/api/status');
@@ -397,48 +594,102 @@ async function poll() {
     bt.textContent = s.bt ? 'BT on' : 'BT off';
     bt.className = 'pill' + (s.bt ? ' on' : '');
     document.getElementById('linkStat').innerHTML = s.bt
-      ? '<span class="ok">蓝牙已连接</span> · cam=' + (s.vision_connected ? 'ON' : 'OFF')
+      ? '<span class="ok">已连接</span>' + (s.vision_connected ? ' · cam ON' : '')
       : '<span class="bad">未连接</span>';
     if (s.fault) document.getElementById('linkStat').innerHTML += ' <span class="warn">' + s.fault + '</span>';
     const v = s.vision;
     document.getElementById('visStat').textContent = v
-      ? (v.kind === 'mat' ? `mat (${v.x},${v.y}) color=${v.color}` : `ring (${v.x},${v.y}) digit=${v.digit}`)
+      ? (v.kind === 'mat' ? `mat (${v.x},${v.y}) c=${v.color}` : `ring (${v.x},${v.y}) d=${v.digit}`)
       : 'vision: —';
     const dot = document.getElementById('dot');
-    const box = document.getElementById('cross');
+    /* WiFi 直收：物料帧锁定视觉是 160×160，圆环是 320×240 */
     if (v) {
+      const vw = (v.kind === 'mat') ? 160 : 320;
+      const vh = (v.kind === 'mat') ? 160 : 240;
+      const nx = Math.min(1, Math.max(0, (+v.x || 0) / vw));
+      const ny = Math.min(1, Math.max(0, (+v.y || 0) / vh));
       dot.style.display = 'block';
-      dot.style.left = (Math.min(1, Math.max(0, v.x / 320)) * box.clientWidth) + 'px';
-      dot.style.top = (Math.min(1, Math.max(0, v.y / 240)) * box.clientHeight) + 'px';
+      dot.style.left = (nx * 100).toFixed(2) + '%';
+      dot.style.top = (ny * 100).toFixed(2) + '%';
     } else dot.style.display = 'none';
 
     const mv = s.mcu_vis;
     const coop = s.coop || {};
     const coopEl = document.getElementById('coopStat');
+    const mdot = document.getElementById('mcuDot');
     if (mv) {
+      const live = Number(mv.on) === 1 && Number(mv.held || 0) === 0;
       const arrCls = mv.arr ? 'ok' : 'warn';
       coopEl.innerHTML =
         (coop.on ? '<span class="ok">配合中</span> · ' : '') +
-        `on=${mv.on} frames=${mv.frames} kind=${mv.kind} fol=${mv.fol} ` +
-        `dx=${mv.dx} dy=${mv.dy} <span class="${arrCls}">arr=${mv.arr}</span>` +
+        `frames=${mv.frames} fol=${mv.fol} dx=${mv.dx} dy=${mv.dy} ` +
+        `<span class="${arrCls}">arr=${mv.arr}</span>` +
+        (mv.held ? ' · <span class="warn">hold</span>' : '') +
         (coop.closed ? ' · <span class="ok">已合爪</span>' : '');
-      const mdot = document.getElementById('mcuDot');
-      const mbox = document.getElementById('mcuCross');
-      // dx,dy 相对中心；映射到准星（cx=160 → 中线）
-      const px = 160 + mv.dx, py = 120 + mv.dy;
-      mdot.style.display = 'block';
-      mdot.style.left = (Math.min(1, Math.max(0, px / 320)) * mbox.clientWidth) + 'px';
-      mdot.style.top = (Math.min(1, Math.max(0, py / 240)) * mbox.clientHeight) + 'px';
-      mdot.style.background = mv.arr ? 'var(--acc2)' : 'var(--acc)';
+      if (live) {
+        const nx = Math.min(1, Math.max(0, (160 + (+mv.dx || 0)) / 320));
+        const ny = Math.min(1, Math.max(0, (120 + (+mv.dy || 0)) / 240));
+        _mcuAim = { nx, ny, t: performance.now() };
+        placeMcuDot(nx, ny, true, !!mv.arr);
+      } else if (_mcuAim && (coop.on || performance.now() - _mcuAim.t < 3000)) {
+        placeMcuDot(_mcuAim.nx, _mcuAim.ny, false, false);
+      } else {
+        mdot.style.display = 'none';
+      }
     } else {
       coopEl.textContent = coop.on ? '配合中，等待 VIS…' : 'MCU 视觉: —';
-      document.getElementById('mcuDot').style.display = 'none';
+      if (_mcuAim && coop.on) placeMcuDot(_mcuAim.nx, _mcuAim.ny, false, false);
+      else mdot.style.display = 'none';
     }
-    if (s.open_p != null) document.getElementById('openP').value = s.open_p;
-    if (s.close_p != null) document.getElementById('closeP').value = s.close_p;
-    document.getElementById('log').textContent = (s.log || []).map(e => e.t + '  ' + e.m).join('\n');
+    if (!_servoSynced && s.open_p != null) {
+      document.getElementById('openP').value = s.open_p;
+      document.getElementById('closeP').value = s.close_p;
+      _servoSynced = true;
+    }
+    const ss = document.getElementById('servoStat');
+    if (ss && s.open_p != null && !ss.textContent.includes('MCU')) {
+      ss.textContent = `开/合: ${s.open_p} / ${s.close_p}`;
+    }
+    const arm = s.arm || {};
+    const liftEl = document.getElementById('liftStat');
+    if (liftEl) {
+      const bits = [];
+      if (arm.vpos_mm != null) bits.push(`VPOS ${Number(arm.vpos_mm).toFixed(2)} mm`);
+      if (arm.pos != null) bits.push(`POS ${arm.pos}`);
+      if (arm.online != null) bits.push(arm.online ? 'online' : 'offline');
+      liftEl.textContent = bits.length ? ('轴①: ' + bits.join(' · ')) : '轴①: —（点读 L）';
+    }
+    const sc = s.scan || {};
+    const stEl = document.getElementById('scanStatus');
+    const cdEl = document.getElementById('scanCode');
+    const ptEl = document.getElementById('scanParts');
+    if (stEl && cdEl && ptEl) {
+      if (sc.ok && sc.code) {
+        stEl.innerHTML = '<span class="ok">主板已收到</span>';
+        cdEl.textContent = sc.code;
+        ptEl.textContent = [sc.code.slice(0,3), sc.code.slice(4,7), sc.code.slice(8,11), sc.code.slice(12,15)].join(' | ');
+      } else {
+        stEl.textContent = '等待中';
+        cdEl.textContent = '—';
+        ptEl.textContent = '—';
+      }
+    }
+    const scanTab = document.querySelector('.panel.active[data-panel="scan"]');
+    if (scanTab && document.getElementById('scanAuto').checked && s.bt) {
+      const now = performance.now();
+      if (now - _scanPollAt > 800) {
+        _scanPollAt = now;
+        j('/api/scan/query', { method: 'POST' }).catch(() => {});
+      }
+    }
+    const logText = (s.log || []).map(e => e.t + '  ' + e.m).join('\n');
+    const logEl = document.getElementById('log');
+    if (logEl.dataset.prev !== logText) {
+      logEl.dataset.prev = logText;
+      logEl.textContent = logText;
+    }
   } catch (_) {}
-  setTimeout(poll, 400);
+  setTimeout(poll, 500);
 }
 refreshPorts();
 poll();
